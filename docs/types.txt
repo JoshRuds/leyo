@@ -1,0 +1,5 @@
+string
+char
+int
+float
+defined

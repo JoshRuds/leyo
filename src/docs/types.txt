@@ -1,0 +1,7 @@
+s string
+c char
+i int
+f float
+k keyword
+r reserved
+d defined (eg. function)
