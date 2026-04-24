@@ -23,7 +23,7 @@ typedef struct {
 
     int line;
     int collumn;
-    
-} Value;
+
+} Token;
 
 #endif
