@@ -1,6 +1,7 @@
 #include "../include/type.h"
 #include "../include/liner.h"
 #include <stdbool.h>
+#include <ctype.h>
 
 Token* lex(char *code, int len) {
     char **tokens;
@@ -27,6 +28,14 @@ bool strIn(char c, char *toCheck) {
     return false;
 }
 
+bool isAlpha(char src) {
+    return (toupper(src) != tolower(src));
+};
+
+bool isInt(char src) {
+    return isdigit(src);
+}\
+
 Token token(char* value, TokenType type, int line, int collumn) {
     Token t;
     t.value = value;
@@ -43,8 +52,18 @@ TokenStream tokenise(char* src, int lineNum) {
     for (int i = 0; src[i] != '\0'; i++) {
         if (src[i] == '(') {
             tokens[tokenCount] = token(src[i], OPENBRAC, lineNum, i+1);
+            tokenCount++;
         } else if (src[i] == ')') {
             tokens[tokenCount] = token(src[i], CLOSEBRAC, lineNum, i+1);
+            tokenCount++;
+        } else if (strIn(src[i], OPERATORS)) {
+            tokens[tokenCount] = token(src[i], OPERATION, lineNum, i+1);
+            tokenCount++;
+        } else if (src[i] == '=') {
+            tokens[tokenCount] = token(src[i], EQUALS, lineNum, i+1);
+            tokenCount++;
+        } else {
+
         }
         
     }
