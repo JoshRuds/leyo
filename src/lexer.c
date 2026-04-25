@@ -34,7 +34,7 @@ bool isAlpha(char src) {
 
 bool isInt(char src) {
     return isdigit(src);
-}\
+}
 
 Token token(char* value, TokenType type, int line, int collumn) {
     Token t;
@@ -48,6 +48,9 @@ Token token(char* value, TokenType type, int line, int collumn) {
 TokenStream tokenise(char* src, int lineNum) {
     Token tokens[4096];
     int tokenCount = 0;
+
+    char ident[64] = "";
+    bool isIdentNum = false;
 
     for (int i = 0; src[i] != '\0'; i++) {
         if (src[i] == '(') {
