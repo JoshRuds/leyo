@@ -1,0 +1,15 @@
+CC = gcc
+CFLAGS = -Wall -Wextra -Iinclude
+SRC = src/main.c
+OUT = bin/output.exe
+
+all: $(OUT)
+
+$(OUT): $(SRC)
+	mkdir -p bin
+	$(CC) $(CFLAGS) $(SRC) -o $(OUT)
+
+clean:
+	rm -rf bin
+
+.PHONY: all clean
