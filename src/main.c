@@ -4,6 +4,7 @@
 
 int main() {
     char code[] = "int main";
-    
+    int *len;
+    char **splited = lineSplit(code, &len);
     return 0;
 }
