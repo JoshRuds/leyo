@@ -1,9 +1,19 @@
 #include "../include/type.h"
-#include "../include/liner.h"
 #include <stdbool.h>
 #include <ctype.h>
+#include <string.h>
+#include <stdio.h>
 
-bool charIn(char c, char *toCheck) {
+const char OPERATORS[] = "+-*/^";
+const char *VARDEFS[] = {"int", "char", "bool", "string"};
+
+
+static inline bool isSkippable(char c) {
+    return isspace((unsigned char)c);
+}
+
+
+bool charIn(char c, const char *toCheck) {
     for (int i = 0; toCheck[i] != '\0'; i++) {
         if (c == toCheck[i]) { return true; }
     };
@@ -11,25 +21,26 @@ bool charIn(char c, char *toCheck) {
     return false;
 }
 
-bool strIn(char *c, char *toCheck) {
-    for (int i = 0; toCheck[i] != '\0'; i++) {
-        if (c == toCheck[i]) { return true; }
-    };
-
+bool strIn(const char *c, const char **toCheck) {
+    for (int i = 0; toCheck[i] != NULL; i++) {
+        if (strcmp(c, toCheck[i]) == 0) {
+            return true;
+        }
+    }
     return false;
 }
 
 bool isAlpha(char src) {
     return (toupper(src) != tolower(src));
-};
+}
 
 bool isInt(char src) {
     return isdigit(src);
 }
 
-Token token(char* value, TokenType type, int line, int collumn) {
+Token token(const char *value, TokenType type, int line, int collumn) {
     Token t;
-    t.value = value;
+    t.value = strdup(value);
     t.type = type;
     t.line = line;
     t.collumn = collumn;
@@ -40,44 +51,55 @@ TokenStream tokenise(char* src, int lineNum) {
     Token tokens[4096];
     int tokenCount = 0;
 
-    char ident[64] = "";
+    char ident[256];
     int identCount = 0;
 
     int stateSaveI;
 
     for (int i = 0; src[i] != '\0'; i++) {
+
+        if (isSkippable(src[i])) {
+            continue;
+        }
+
+        printf("i=%d char=%c\n", i, src[i]);
         if (src[i] == '(') {
-            tokens[tokenCount] = token(src[i], OPENBRAC, lineNum, i+1);
-            tokenCount++;
+            char tmp[2] = { src[i], '\0' }; 
+            tokens[tokenCount++] = token(tmp, OPENBRAC, lineNum, i+1);
         } else if (src[i] == ')') {
-            tokens[tokenCount] = token(src[i], CLOSEBRAC, lineNum, i+1);
-            tokenCount++;
+            char tmp[2] = { src[i], '\0' }; 
+            tokens[tokenCount++] = token(tmp, CLOSEBRAC, lineNum, i+1);
         } else if (charIn(src[i], OPERATORS)) {
-            tokens[tokenCount] = token(src[i], OPERATION, lineNum, i+1);
-            tokenCount++;
+            char tmp[2] = { src[i], '\0' }; 
+            tokens[tokenCount++] = token(tmp, OPERATION, lineNum, i+1);
         } else if (src[i] == '=') {
-            tokens[tokenCount] = token(src[i], EQUALS, lineNum, i+1);
-            tokenCount++;
+            char tmp[2] = { src[i], '\0' }; 
+            tokens[tokenCount++] = token(tmp, EQUALS, lineNum, i+1);
         } else {
             stateSaveI = i;
             if (isInt(src[i])) {
+                identCount = 0;
+                memset(ident, 0, sizeof(ident));
                 for (; src[i] != '\0' && isInt(src[i]); i++) {
-                    ident[identCount] = src[i];
+                    ident[identCount++] = src[i];
                 };
-                tokens[tokenCount] = token(ident, NUMBER, lineNum, stateSaveI++);
-                tokenCount++;
+                tokens[tokenCount++] = token(ident, NUMBER, lineNum, stateSaveI++);
+                ident[identCount] = '\0';
             } else if (isAlpha(src[i])) {
+                identCount = 0;
+                memset(ident, 0, sizeof(ident));
                 for (; src[i] != '\0' && isAlpha(src[i]); i++) {
-                    ident[identCount] = src[i];
+                    ident[identCount++] = src[i];
                 };
+                ident[identCount] = '\0';
 
+                tokens[tokenCount++] = token(ident, IDENTIFIER, lineNum, stateSaveI++);
+                continue;
                 if (strIn(ident, VARDEFS)) {
-                    tokens[tokenCount] = token(ident, VARDEFS, lineNum, stateSaveI++);
+                    tokens[tokenCount++] = token(ident, VARIABLEDEF, lineNum, stateSaveI++);
                 } else {
-                    tokens[tokenCount] = token(ident, IDENTIFIER, lineNum, stateSaveI++);
-                    tokenCount++;
+                    tokens[tokenCount++] = token(ident, IDENTIFIER, lineNum, stateSaveI++);
                 };
-                
             }
             i--;
         }
@@ -86,6 +108,7 @@ TokenStream tokenise(char* src, int lineNum) {
 
 
     TokenStream tokenstream;
-    memcpy(tokenstream.stream, tokens, sizeof(tokens));
+    memcpy(tokenstream.stream, tokens, tokenCount * sizeof(Token));
+    tokenstream.count = tokenCount;   // 🔥 THIS IS REQUIRED
     return tokenstream;
 }

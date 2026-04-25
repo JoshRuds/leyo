@@ -30,7 +30,6 @@ typedef struct {
     int count;
 } TokenStream;
 
-const char OPERATORS[] = {'+', '-', '*', '/', '^'};
-const char *VARDEFS[] = {"int", "char", "bool", "string"};
+
 
 #endif

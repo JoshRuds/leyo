@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-int lineCounter (char *str) {
+static int lineCounter (char *str) {
     int count = 0;
     for (int i = 0; str[i]; i++) {
         if (str[i] == ';') {
@@ -12,8 +12,8 @@ int lineCounter (char *str) {
 
 char **lineSplit (char *code, int *len) {
     int count = lineCounter(code);
-    *len = count;
     if (count == 0) count = 1;
+    *len = count;
     char **lines = malloc(sizeof(char*) * count);
 
     int index = 0;
@@ -25,4 +25,6 @@ char **lineSplit (char *code, int *len) {
             lines[++index] = &code[i+1]; 
         }
     }
+
+    return lines;
 }
