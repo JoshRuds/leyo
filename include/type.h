@@ -1,5 +1,6 @@
 #ifndef TYPE_H
 #define TYPE_H
+#define MAX_TOKENS_PER_LINE 256
 
 typedef enum {
     NONE,
@@ -22,5 +23,9 @@ typedef struct {
     int collumn;
 
 } Token;
+
+typedef struct {
+    Token stream[4096]
+} TokenStream;
 
 #endif

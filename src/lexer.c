@@ -1,7 +1,8 @@
 #include "../include/type.h"
 #include "../include/liner.h"
+#include <stdbool.h>
 
-Token lex(char *code, int len) {
+Token* lex(char *code, int len) {
     char **tokens;
     int tokens_count = 0;
     char *tok;
@@ -16,4 +17,38 @@ Token lex(char *code, int len) {
             tok_count++;
         }
     }
+}
+
+bool strIn(char *str, char *toFind) {
+    for (int i = 0; str[i] != '\0'; i++) {
+        if (toFind == str[i]) { return true; }
+    }
+}
+
+Token token(char* value, TokenType type, int line, int collumn) {
+    Token t;
+    t.value = value;
+    t.type = type;
+    t.line = line;
+    t.collumn = collumn;
+    return t;
+}
+
+TokenStream tokenise(char* src, int lineNum) {
+    Token tokens[4096];
+    int tokenCount = 0;
+
+    for (int i = 0; src[i] != '\0'; i++) {
+        if (src[i] == '(') {
+            tokens[tokenCount] = token(src[i], OPENBRAC, lineNum, i+1);
+        } else if (src[i] == ')') {
+            tokens[tokenCount] = token(src[i], CLOSEBRAC, lineNum, i+1);
+        }
+        
+    }
+
+
+    TokenStream tokenstream;
+    memcpy(tokenstream.stream, tokens, sizeof(tokens));
+    return tokenstream;
 }
