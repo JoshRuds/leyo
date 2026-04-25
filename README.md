@@ -1,14 +1,147 @@
-# leyo
+📘 Leyo Language
 
-Leyo is a fully obserbant, permissive language - logs everything you do and makes sure you trust it by having typesafe, allowed code to run only. It's syntax is similar to C, with simplifyed arrays on top (and NO pointers!!!).
+Introduction
 
-EXAMPLE:
+Leyo is a fully observant, permissive programming language designed with security, traceability, and controlled execution in mind. It logs all actions performed within the system and enforces strict type safety to ensure only explicitly allowed code can run.
+
+Its syntax is inspired by C-style languages, while introducing simplified constructs—such as array handling—and deliberately removing unsafe features like pointers.
+
+⸻
+
+Table of Contents
+
+* Introduction
+* Features
+* Syntax Overview
+* Installation
+* Usage
+* Examples
+* Configuration
+* Security Model
+* Troubleshooting
+* Contributors
+* License
+
+⸻
+
+Features
+
+* 🔍 Full Observability – Every action is logged automatically
+* 🔐 Permission-Based Execution – Code must explicitly declare allowed actions
+* ✅ Type Safety – Strong typing prevents unsafe operations
+* 🚫 No Pointers – Eliminates a major class of memory errors
+* 🧩 C-like Syntax – Familiar structure for developers
+* 📦 Simplified Arrays – Easier data handling without complex memory management
+
+⸻
+
+Syntax Overview
+
+Leyo uses a structured, declarative style where permissions and behaviors are explicitly defined.
+
+Key Concepts
+
+* allow — Grants permission for specific operations
+* defined — Declares a function or behavior
+* log — Outputs observable logs
+* pass — Allows execution to proceed
+* *** — Comment syntax
+
+⸻
+
+Example
 
 allow NetworkInbound(port:5000);
 defined networkWatch(networkTraffic: NetworkStream) {
     log 'watching stream on #port#';
     *** comment;
+    
     if (port === 5000) {
         pass;
     };
 };
+
+Explanation
+
+* The program explicitly allows inbound network traffic on port 5000
+* A function networkWatch is defined to observe network streams
+* Logging is built-in and automatic
+* Execution proceeds only if conditions match allowed rules
+
+⸻
+
+Installation
+
+⚠️ Not specified yet.
+
+Please provide:
+
+* Installation method (binary, package manager, source build, etc.)
+* Supported platforms
+
+⸻
+
+Usage
+
+Basic workflow in Leyo:
+
+1. Declare permissions using allow
+2. Define behaviors using defined
+3. Use logging to track execution
+4. Control execution flow with strict conditions
+
+⸻
+
+Configuration
+
+Configuration appears to be embedded directly in code via:
+
+* Permission declarations (allow)
+* Typed parameters
+* Explicit execution control
+
+(Provide more details if there’s an external config system.)
+
+⸻
+
+Security Model
+
+Leyo enforces a permission-first execution model:
+
+* No operation runs unless explicitly allowed
+* All actions are logged for auditing
+* Type safety prevents undefined behavior
+* No pointers → eliminates unsafe memory access
+
+⸻
+
+Examples
+
+More examples would help clarify:
+
+* File system access
+* Outbound networking
+* Array usage
+* Error handling
+
+⸻
+
+Troubleshooting
+
+Common issues may include:
+
+* Missing allow declarations → code won’t execute
+* Type mismatches → compilation/runtime errors
+* Undefined permissions → blocked operations
+
+⸻
+
+Contributors
+
+Not specified.
+
+⸻
+
+License
+
+Not specified.
