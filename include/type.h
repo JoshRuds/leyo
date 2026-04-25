@@ -12,7 +12,8 @@ typedef enum {
     OPERATION,
     VARIABLEDEF,
     KEYWORD,
-    RESERVED
+    RESERVED,
+    UNKNOWN
 } TokenType;
 
 typedef struct {
@@ -29,5 +30,6 @@ typedef struct {
 } TokenStream;
 
 const char OPERATORS[] = {'+', '-', '*', '/', '^'};
+const char *VARDEFS[] = {"int", "char", "bool", "string"};
 
 #endif
