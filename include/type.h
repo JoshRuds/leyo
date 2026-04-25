@@ -28,4 +28,6 @@ typedef struct {
     Token stream[4096]
 } TokenStream;
 
+const char OPERATORS[] = {'+', '-', '*', '/'};
+
 #endif

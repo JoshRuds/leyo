@@ -19,10 +19,12 @@ Token* lex(char *code, int len) {
     }
 }
 
-bool strIn(char *str, char *toFind) {
-    for (int i = 0; str[i] != '\0'; i++) {
-        if (toFind == str[i]) { return true; }
-    }
+bool strIn(char c, char *toCheck) {
+    for (int i = 0; toCheck[i] != '\0'; i++) {
+        if (c == toCheck[i]) { return true; }
+    };
+
+    return false;
 }
 
 Token token(char* value, TokenType type, int line, int collumn) {
