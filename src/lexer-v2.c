@@ -19,6 +19,12 @@ bool isInt(char src) {
     return isdigit(src);
 }
 
+char *charToStr(char c) {
+    char *tmp;
+    tmp = ""
+    return tmp;
+}
+
 typedef enum {
     M_NORMAL,
     M_STRING,
@@ -83,6 +89,12 @@ void handleNormal() {
         l->mode = M_STRING;
         advance();
         return;
+    } else if (isalpha(current())) {
+        l->mode = M_IDENTIFIER;
+        return;
+    } else if (isdigit(current())) {
+        l->mode = M_NUMBER;
+        return;
     }
 }
 
@@ -105,6 +117,7 @@ void handleString() {
         if (current() == '"') {
             buff[buffSize] = '\0';
             push(token(buff, M_STRING));
+            l->mode = M_NORMAL;
             break;
         }
 
@@ -128,11 +141,92 @@ void handleString() {
 }
 
 void handleIdentifier() {
-    return;
+
+    int buffSize = 0;
+    int buffCap = 32;
+    char *buff = malloc(buffCap);
+
+    if (!buff) {
+        raise("Out of memory", l->line, l->collumn);
+        return;
+    }
+
+    while (true) {
+        char c = current();
+        if (!isalnum(c) && c != '_') {
+
+            buff[buffSize] = '\0';
+            push(token(buff, M_IDENTIFIER));
+
+            l->mode = M_NORMAL;
+            break;
+        }
+
+        if (buffSize >= buffCap - 1) {
+            buffCap *= 2;
+
+            char *tmp = realloc(buff, buffCap);
+            if (!tmp) {
+                free(buff);
+                raise("Out of memory", l->line, l->collumn);
+                return;
+            }
+            buff = tmp;
+        }
+
+        buff[buffSize++] = c;
+        advance();
+    }
+
+    free(buff);
 }
 
 void handleNumber() {
-    return;
+
+    int buffSize = 0;
+    int buffCap = 32;
+    char *buff = malloc(buffCap);
+
+    if (!buff) {
+        raise("Out of memory", l->line, l->collumn);
+        return;
+    }
+
+    bool dotSeen = false;
+
+    while (true) {
+
+        char c = current();
+        if (!isdigit(c) && c != '.') {
+
+            buff[buffSize] = '\0';
+            push(token(buff, M_NUMBER));
+
+            l->mode = M_NORMAL;
+            break;
+        }
+        if (c == '.') {
+            if (dotSeen) {
+                raise("Invalid number format", l->line, l->collumn);
+                break;
+            }
+            dotSeen = true;
+        }
+        if (buffSize >= buffCap - 1) {
+            buffCap *= 2;
+
+            char *tmp = realloc(buff, buffCap);
+            if (!tmp) {
+                free(buff);
+                raise("Out of memory", l->line, l->collumn);
+                return;
+            }
+            buff = tmp;
+        }
+        buff[buffSize++] = c;
+        advance();
+    }
+    free(buff);
 }
 
 void handleComment() {
@@ -160,23 +254,23 @@ TokenStream tokenise(char* _src) {
     while (src[l->i] != '\0') {
         switch (l->mode) {
             case M_NORMAL:
-                handleNormal(src);
+                handleNormal();
                 break;
 
             case M_STRING:
-                handleString(src);
+                handleString();
                 break;
 
             case M_IDENTIFIER:
-                handleIdentifier(src);
+                handleIdentifier();
                 break;
 
             case M_NUMBER:
-                handleNumber(src);
+                handleNumber();
                 break;
 
             case M_COMMENT:
-                handleComment(src);
+                handleComment();
                 break;
         }
     }
