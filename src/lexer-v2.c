@@ -19,10 +19,17 @@ bool isInt(char src) {
     return isdigit(src);
 }
 
-char *charToStr(char c) {
-    char *tmp;
-    tmp = ""
+char charToStr(char c) {
+    char tmp[2] = { c, '\0' };
     return tmp;
+}
+
+bool charIn(char c, const char *toCheck) {
+    for (int i = 0; toCheck[i] != '\0'; i++) {
+        if (c == toCheck[i]) { return true; }
+    };
+
+    return false;
 }
 
 typedef enum {
@@ -70,6 +77,11 @@ char current() {
     return src[l->i];
 }
 
+char previous() {
+    return src[l->i-1];
+}
+
+
 void advance() {
     l->i++;
     if (current() == '\n') {
@@ -81,21 +93,61 @@ void advance() {
 }
 
 void handleNormal() {
-    if (current() == '~') {
+    char c = current();
+    if (c == '~') {
         l->mode = M_COMMENT;
         advance();
         return;
-    } else if (current() == '"') {
+    } else if (c == '"') {
         l->mode = M_STRING;
         advance();
         return;
-    } else if (isalpha(current())) {
+    } else if (isalpha(c)) {
         l->mode = M_IDENTIFIER;
         return;
-    } else if (isdigit(current())) {
+    } else if (isdigit(c)) {
         l->mode = M_NUMBER;
         return;
+    };
+
+    if (c == '(') {push(token(charToStr(c), OPENBRAC));} else
+    if (c == ')') {push(token(charToStr(c), CLOSEBRAC));} else
+    if (c == ',') {push(token(charToStr(c), COMMA));} else 
+    if (c == ';') {push(token(charToStr(c), SEMICOLON));} else
+    if (c == '[') {push(token(charToStr(c), OPENSQUARE));} else
+    if (c == ']') {push(token(charToStr(c), CLOSESQUARE));} else
+    if (c == '{') {push(token(charToStr(c), OPENBRACE));} else
+    if (c == '}') {push(token(charToStr(c), CLOSEBRACE));} else
+    if (c == '=') {
+        if (peek() == '=') {
+            advance();
+            if (peek() == '=') {
+                    advance();
+                    push(token("===", CONDITION));
+            } else {
+                push(token("==", CONDITION));
+            }
+        } else {
+            push(token(charToStr(c), EQUALS));
+        }
+    } else if (charIn(c, OPERATORS)) {
+        push(token(charToStr(c), OPERATION));
+    } else if (charIn(c, CONDITIONS)) {
+        if (peek() == '=') {
+            advance();
+            char tmp[3] = { previous(), current(), '\0'};
+            push(token(tmp, CONDITION));
+        }
+        push(token(charToStr(c), CONDITION));
+    } else {
+        push(token(charToStr(c), UNKNOWN));
+        char buffer[48];
+        snprintf(buffer, sizeof(buffer), "Invalid Character: %c", current());
+        raise(buffer, l->line, l->collumn);
     }
+
+    advance();
+    return;
 }
 
 void handleString() {
