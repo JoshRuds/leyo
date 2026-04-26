@@ -10,9 +10,14 @@ typedef enum {
     OPENBRAC,
     CLOSEBRAC,
     OPERATION,
-    VARIABLEDEF,
-    KEYWORD,
-    RESERVED,
+    SEMICOLON,
+    OPENBRACE,
+    CLOSEBRACE,
+    OPENSQUARE,
+    CLOSESQUARE,
+    CONDITION,
+    COMMA,
+    STRING,
     UNKNOWN
 } TokenType;
 
