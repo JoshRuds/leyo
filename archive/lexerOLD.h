@@ -1,9 +1,9 @@
-#ifndef LEXER_H
-#define LEXER_H
+#ifndef LEXER_OLD_H
+#define LEXER_OLD_H
 
 #include <stdbool.h>
 
-#include "../include/type.h"
+#include "type.h"
 
 
 bool charIn(char c, const char *toCheck);
@@ -15,8 +15,7 @@ bool isAlpha(char src);
 bool isInt(char src);
 
 
-Token _token(const char *value, TokenType type, int line, int column);
-Token token(const char *value, TokenType type);
+Token token(const char *value, TokenType type, int line, int column);
 
 TokenStream tokenise(char *src);
 
