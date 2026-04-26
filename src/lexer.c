@@ -3,33 +3,13 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 const char OPERATORS[] = "+-*/^";
 const char CONDITIONS[] = "><!";
-const char *VARDEFS[] = {"int", "char", "bool", "string"};
 
+char *src;
 
-static inline bool isSkippable(char c) {
-    return isspace(c);
-}
-
-
-bool charIn(char c, const char *toCheck) {
-    for (int i = 0; toCheck[i] != '\0'; i++) {
-        if (c == toCheck[i]) { return true; }
-    };
-
-    return false;
-}
-
-bool strIn(const char *c, const char **toCheck) {
-    for (int i = 0; toCheck[i] != NULL; i++) {
-        if (strcmp(c, toCheck[i]) == 0) {
-            return true;
-        }
-    }
-    return false;
-}
 
 bool isAlpha(char src) {
     return (toupper(src) != tolower(src));
@@ -39,7 +19,42 @@ bool isInt(char src) {
     return isdigit(src);
 }
 
-Token token(const char *value, TokenType type, int line, int collumn) {
+char *charToStr(char c) {
+    static char tmp[2];
+    tmp[0] = c;
+    tmp[1] = '\0';
+    return tmp;
+}
+
+bool charIn(char c, const char *toCheck) {
+    for (int i = 0; toCheck[i] != '\0'; i++) {
+        if (c == toCheck[i]) { return true; }
+    };
+
+    return false;
+}
+
+typedef enum {
+    M_NORMAL,
+    M_STRING,
+    M_NUMBER,
+    M_IDENTIFIER,
+    M_COMMENT
+} LexerMode;
+
+typedef struct {
+    int i;
+    int line;
+    int collumn;
+    LexerMode mode;
+} Lexer;
+
+Lexer lexer;
+Lexer *l = &lexer;
+
+TokenStream lexRes;
+
+Token _token(const char *value, TokenType type, int line, int collumn) {
     Token t;
     t.value = strdup(value);
     t.type = type;
@@ -48,147 +63,282 @@ Token token(const char *value, TokenType type, int line, int collumn) {
     return t;
 }
 
-TokenStream tokenise(char* src) {
-    Token tokens[4096];
-    int tokenCount = 0;
+Token token(const char *value, TokenType type) {
+    return _token(value, type, l->line, l->collumn);
+}
 
-    char ident[256];
-    int identCount = 0;
+void push(Token token) {
+    lexRes.stream[lexRes.count++] = token;
+}
 
-    bool commented = false;
-    bool stringMode = false;
+char peek() {
+    return src[l->i+1];
+}
 
-    int lineNum = 1;
-    int collumn = 0;
+char current() {
+    return src[l->i];
+}
 
-    for (int i = 0; src[i] != '\0'; i++) {
-        collumn++;
+char previous() {
+    return src[l->i-1];
+}
 
-        if (src[i] == '\n') {lineNum++; collumn = 0; continue; commented = false;};
 
-        if (commented) {
-            continue;
-        }
+void advance() {
+    l->i++;
+    if (current() == '\n') {
+        l->line++;
+        l->collumn = 0;
+    } else {
+        l->collumn++;
+    }
+    printf("%c\n", current());
+}
 
-        if (src[i] == '~') {
-            commented = true;
-        };
-    
-        if (isSkippable(src[i])) {
-            continue;
-        }
+void handleNormal() {
+    char c = current();
 
-        if (src[i] == '(') {
-            char tmp[2] = { src[i], '\0' }; 
-            tokens[tokenCount++] = token(tmp, OPENBRAC, lineNum, collumn);
-        } else if (src[i] == ')') {
-            char tmp[2] = { src[i], '\0' }; 
-            tokens[tokenCount++] = token(tmp, CLOSEBRAC, lineNum, collumn);
-        } else if (src[i] == ',') {
-            char tmp[2] = { src[i], '\0' }; 
-            tokens[tokenCount++] = token(tmp, COMMA, lineNum, collumn);
-        } else if (charIn(src[i], OPERATORS)) {
-            char tmp[2] = { src[i], '\0' }; 
-            tokens[tokenCount++] = token(tmp, OPERATION, lineNum, collumn);
-        } else if (charIn(src[i], CONDITIONS)) {
-            if (src[i+1] == '=') {
-                i++;
-                char tmp[3] = { src[i-1], src[i], '\0' }; 
-                tokens[tokenCount++] = token(tmp, CONDITION, lineNum, collumn);
-                continue;
-            }
-            char tmp[2] = { src[i], '\0' }; 
-            tokens[tokenCount++] = token(tmp, OPERATION, lineNum, collumn);
-        } else if (src[i] == '=') {
-            if (src[i+1] == '=') {
-                i++;
-                if (src[i+1] == '=') {
-                    i++;
-                    char tmp[4] = { src[i-2], src[i-1], src[i], '\0' }; 
-                    tokens[tokenCount++] = token(tmp, CONDITION, lineNum, collumn);
-                    continue;
-                }
-                char tmp[3] = { src[i-1], src[i], '\0' }; 
-                tokens[tokenCount++] = token(tmp, CONDITION, lineNum, collumn);
-                continue;
-            }
-            char tmp[2] = { src[i], '\0' }; 
-            tokens[tokenCount++] = token(tmp, EQUALS, lineNum, collumn);
-        } else if (src[i] == ';') {
-            char tmp[2] = { src[i], '\0' }; 
-            tokens[tokenCount++] = token(tmp, SEMICOLON, lineNum, collumn);
-        } else if (src[i] == '[') {
-            char tmp[2] = { src[i], '\0' }; 
-            tokens[tokenCount++] = token(tmp, OPENSQUARE, lineNum, collumn);
-        } else if (src[i] == ']') {
-            char tmp[2] = { src[i], '\0' }; 
-            tokens[tokenCount++] = token(tmp, CLOSESQUARE, lineNum, collumn);
-        } else if (src[i] == '{') {
-            char tmp[2] = { src[i], '\0' }; 
-            tokens[tokenCount++] = token(tmp, OPENBRACE, lineNum, collumn);
-        } else if (src[i] == '}') {
-            char tmp[2] = { src[i], '\0' }; 
-            tokens[tokenCount++] = token(tmp, CLOSEBRACE, lineNum, collumn);
-        } else {
-            if (isInt(src[i])) {
-                identCount = 0;
-                memset(ident, 0, sizeof(ident));
-                for (; src[i] != '\0' && isInt(src[i]); i++) {
-                    ident[identCount++] = src[i];
-                    if (src[i+1] != '\0' && isAlpha(src[i+1])) {
-                        continue;
-                    } else {
-                        break;
-                    }
-                };
-                tokens[tokenCount++] = token(ident, NUMBER, lineNum, collumn);
-                ident[identCount] = '\0';
-            } else if (isAlpha(src[i])) {
-                identCount = 0;
-                memset(ident, 0, sizeof(ident));
-                for (; src[i] != '\0' && isAlpha(src[i]); i++) {
-                    ident[identCount++] = src[i];
-                    if (src[i+1] != '\0' && isAlpha(src[i+1])) {
-                        continue;
-                    } else {
-                        break;
-                    }
-                };
-                ident[identCount] = '\0';
+    if (isspace(c) || c == '\n') {advance(); return;}
 
-                tokens[tokenCount++] = token(ident, IDENTIFIER, lineNum, collumn);
-            } else if (src[i] == '"') {
-                identCount = 0;
-                memset(ident, 0, sizeof(ident));
-                for (; src[i] != '\0' && src[i] != '"'; i++) {
-                    if (src[i] == '\n') {
-                        raise("Unterminated String Literal", lineNum, collumn);
-                        break;
-                    }
-                    ident[identCount++] = src[i];
-                    if (src[i+1] != '\0' && src[i] != '"') {
-                        continue;
-                    } else {
-                        ident[identCount++] = src[i+1];
-                        break;
-                    }
-                };
-                ident[identCount] = '\0';
-                tokens[tokenCount++] = token(ident, STRING, lineNum, collumn);
+    if (c == '~') {
+        l->mode = M_COMMENT;
+        printf("cmt mode");
+        advance();
+        return;
+    } else if (c == '"') {
+        l->mode = M_STRING;
+        printf("str mode");
+        advance();
+        return;
+    } else if (isalpha(c)) {
+        l->mode = M_IDENTIFIER;
+        printf("idnt mode");
+        return;
+    } else if (isdigit(c)) {
+        l->mode = M_NUMBER;
+        printf("num mode");
+        return;
+    };
+
+    if (c == '(') {push(token(charToStr(c), OPENBRAC));} else
+    if (c == ')') {push(token(charToStr(c), CLOSEBRAC));} else
+    if (c == ',') {push(token(charToStr(c), COMMA));} else 
+    if (c == ';') {push(token(charToStr(c), SEMICOLON));} else
+    if (c == '[') {push(token(charToStr(c), OPENSQUARE));} else
+    if (c == ']') {push(token(charToStr(c), CLOSESQUARE));} else
+    if (c == '{') {push(token(charToStr(c), OPENBRACE));} else
+    if (c == '}') {push(token(charToStr(c), CLOSEBRACE));} else
+    if (c == '=') {
+        if (peek() == '=') {
+            advance();
+            if (peek() == '=') {
+                    advance();
+                    push(token("===", CONDITION));
             } else {
-                char tmp[2] = { src[i], '\0' }; 
-                tokens[tokenCount++] = token(tmp, UNKNOWN, lineNum, collumn);
-                char buffer[48];
-                snprintf(buffer, sizeof(buffer), "Invalid Character: %c", src[i]);
-                raise(buffer, lineNum, collumn);
+                push(token("==", CONDITION));
             }
+        } else {
+            push(token(charToStr(c), EQUALS));
         }
-        
+    } else if (charIn(c, OPERATORS)) {
+        push(token(charToStr(c), OPERATION));
+    } else if (charIn(c, CONDITIONS)) {
+        if (peek() == '=') {
+            advance();
+            char tmp[3] = { previous(), current(), '\0'};
+            push(token(tmp, CONDITION));
+        }
+        push(token(charToStr(c), CONDITION));
+    } else {
+        push(token(charToStr(c), UNKNOWN));
+        char buffer[48];
+        snprintf(buffer, sizeof(buffer), "Invalid Character: %c", current());
+        raise(buffer, l->line, l->collumn);
     }
 
+    advance();
+    return;
+}
 
-    TokenStream tokenstream;
-    memcpy(tokenstream.stream, tokens, tokenCount * sizeof(Token));
-    tokenstream.count = tokenCount;
-    return tokenstream;
+void handleString() {
+    
+    int buffSize = 0;
+    int buffCap = 32;
+    char *buff = malloc(buffCap);
+    if (!buff) {
+        raise("Out of memory", l->line, l->collumn);
+        return;
+    }
+
+    while (true) {
+        if (current() == '\n' || current() == '\0') {
+            raise("Unterminated String Literal", l->line, l->collumn);
+            free(buff);
+            l->mode = M_NORMAL;
+            return;
+        }
+
+        if (current() == '"') {
+            buff[buffSize] = '\0';
+            push(token(buff, STRING));
+            l->mode = M_NORMAL;
+            break;
+        }
+
+
+        if (buffSize >= buffCap - 1) {
+            buffCap *= 2;
+            char *tmp = realloc(buff, buffCap);
+
+            if (!tmp) {
+                free(buff);
+                raise("Out of memory", l->line, l->collumn);
+                return;
+            }
+            buff = tmp;
+        }
+        buff[buffSize++] = current();
+        advance();
+    }
+    advance();
+    free(buff);
+    return;
+}
+
+void handleIdentifier() {
+
+    int buffSize = 0;
+    int buffCap = 32;
+    char *buff = malloc(buffCap);
+
+    if (!buff) {
+        raise("Out of memory", l->line, l->collumn);
+        return;
+    }
+
+    while (true) {
+        char c = current();
+        if (!isalnum(c) && c != '_') {
+
+            buff[buffSize] = '\0';
+            push(token(buff, IDENTIFIER));
+
+            l->mode = M_NORMAL;
+            break;
+        }
+
+        if (buffSize >= buffCap - 1) {
+            buffCap *= 2;
+
+            char *tmp = realloc(buff, buffCap);
+            if (!tmp) {
+                free(buff);
+                raise("Out of memory", l->line, l->collumn);
+                return;
+            }
+            buff = tmp;
+        }
+
+        buff[buffSize++] = c;
+        advance();
+    }
+    advance();
+    free(buff);
+}
+
+void handleNumber() {
+
+    int buffSize = 0;
+    int buffCap = 32;
+    char *buff = malloc(buffCap);
+
+    if (!buff) {
+        raise("Out of memory", l->line, l->collumn);
+        return;
+    }
+
+    bool dotSeen = false;
+
+    while (true) {
+
+        char c = current();
+        if (!isdigit(c) && c != '.') {
+
+            buff[buffSize] = '\0';
+            push(token(buff, NUMBER));
+
+            l->mode = M_NORMAL;
+            break;
+        }
+        if (c == '.') {
+            if (dotSeen) {
+                raise("Invalid number format", l->line, l->collumn);
+                break;
+            }
+            dotSeen = true;
+        }
+        if (buffSize >= buffCap - 1) {
+            buffCap *= 2;
+
+            char *tmp = realloc(buff, buffCap);
+            if (!tmp) {
+                free(buff);
+                raise("Out of memory", l->line, l->collumn);
+                return;
+            }
+            buff = tmp;
+        }
+        buff[buffSize++] = c;
+        advance();
+    }
+    free(buff);
+}
+
+void handleComment() {
+    while (true) {
+        if (current() == '\n' || current() == '~') {
+            l->mode = M_NORMAL;
+            advance();
+            break;
+        } else {
+            advance();
+        }
+    }
+    return;
+}
+
+
+
+TokenStream tokenise(char* _src) {
+    src = _src;
+
+    l->i = 0;
+    l->collumn = 1;
+    l->line = 1;
+    l->mode = M_NORMAL;
+    
+    while (current() != '\0') {
+        switch (l->mode) {
+            case M_NORMAL:
+                handleNormal();
+                break;
+
+            case M_STRING:
+                handleString();
+                break;
+
+            case M_IDENTIFIER:
+                handleIdentifier();
+                break;
+
+            case M_NUMBER:
+                handleNumber();
+                break;
+
+            case M_COMMENT:
+                handleComment();
+                break;
+        }
+    }
+    return lexRes;
 }

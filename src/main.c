@@ -3,12 +3,33 @@
 #include "../include/lexer.h"
 #include "../include/errors.h"
 
+const char *tokenTypeName(TokenType t) {
+    switch (t) {
+        case STRING: return "STRING";
+        case NUMBER: return "NUMBER";
+        case IDENTIFIER: return "IDENTIFIER";
+        case OPENBRAC: return "OPENBRAC";
+        case CLOSEBRAC: return "CLOSEBRAC";
+        case OPENBRACE: return "OPENBRACE";
+        case CLOSEBRACE: return "CLOSEBRACE";
+        case OPENSQUARE: return "OPENSQUARE";
+        case CLOSESQUARE: return "CLOSESQUARE";
+        case COMMA: return "COMMA";
+        case SEMICOLON: return "SEMICOLON";
+        case OPERATION: return "OPERATION";
+        case CONDITION: return "CONDITION";
+        case EQUALS: return "EQUALS";
+        case UNKNOWN: return "UNKNOWN";
+        default: return "???";
+    }
+}
+
 void printTokenStream(TokenStream ts) {
     for (int i = 0; i < ts.count; i++) {
         Token t = ts.stream[i];
 
         printf("Token %d:\n", i);
-        printf("  Type   : %d\n", t.type);
+        printf("  Type   : %s\n", tokenTypeName(t.type));
         printf("  Value  : %s\n", t.value);
         printf("  Line   : %d\n", t.line);
         printf("  Column : %d\n", t.collumn);

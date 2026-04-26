@@ -1,45 +1,26 @@
-int x = 5 @ 3;
-int y = 7 # 2;
-int z = 10 $ 4;
-return x & y;
+int x = 5;
+float y = 3.14;
+string s = "hello world";
 
-string a = "this string never ends;
+~ this is a comment ~
 
-string b = "bad escapes: \q \x \z \9";
-
-if (a = = b) {
-    x = 1;
+if (x >= 5) {
+    y = y + 1;
 }
 
-int a = 5
-int b = 6
-int c = a + b
+a === b;
+c == d;
+e != f;
 
-int n1 = 12abc;
-int n2 = 3..5;
-int n3 = 0012xyz;
+bad1 = 12..34;
+bad2 = "unterminated
+
+weird = @#$;
+
+array nums = [1, 2, 3, 4];
 
 func main() {
-    int x = 5 $ 6;
-    string s = "ok
-    return x & y;
-}
-
-if (x > 5 {
-    y = 3;
-}
-
-array a = [1, 2, 3;
-
-!!! @@ ### $$$ %%%
-int main = 5;
-
-int result = (5 + (3 * (2 + (1 - 0))));
-
-int broken = (5 + (3 * (2 + 1)));
-
-string s2 = "ok\nstill valid but messy";
-
-if (result == 29 {
-    result = result + 1;
+    int result = (5 + (3 * (2 + 1)));
+    string msg = "ok";
+    return result;
 }
