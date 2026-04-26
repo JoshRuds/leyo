@@ -340,5 +340,6 @@ TokenStream tokenise(char* _src) {
                 break;
         }
     }
+    push(token("EndOfStream", ENDOFSTREAM));
     return lexRes;
 }

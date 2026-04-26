@@ -18,6 +18,7 @@ typedef enum {
     CONDITION,
     COMMA,
     STRING,
+    ENDOFSTREAM,
     UNKNOWN
 } TokenType;
 
