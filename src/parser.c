@@ -19,19 +19,19 @@ Parser *p;
 Program program;
 
 
-Token current() {
+static Token current() {
     return p->tokens[p->pos];
 }
 
-Token peek() {
+static Token peek() {
     return p->tokens[p->pos + 1];
 }
 
-void advance() {
-    p->tokens[p->pos++];
+static void advance() {
+    p->pos++;
 }
 
-void push() {
+static void push() {
 
 }
 

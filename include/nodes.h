@@ -13,12 +13,14 @@ typedef enum {
     AST_VAR_DECL
 } ASTNodeType;
 
-typedef struct {
+typedef struct ASTNode ASTNode;
+
+struct ASTNode {
     ASTNodeType type;
     ASTNode *left;
     ASTNode *right;
-    char value;
-} ASTNode;
+    char *value;
+};
 
 typedef struct {
     ASTNode *body;
