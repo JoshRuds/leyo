@@ -17,6 +17,6 @@ bool isInt(char src);
 
 Token token(const char *value, TokenType type, int line, int column);
 
-TokenStream tokenise(char *src, int lineNum);
+TokenStream tokenise(char *src);
 
 #endif

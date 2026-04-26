@@ -9,7 +9,7 @@ const char *VARDEFS[] = {"int", "char", "bool", "string"};
 
 
 static inline bool isSkippable(char c) {
-    return isspace((unsigned char)c);
+    return c == ' ' || c == '\t';
 }
 
 
@@ -47,7 +47,7 @@ Token token(const char *value, TokenType type, int line, int collumn) {
     return t;
 }
 
-TokenStream tokenise(char* src, int lineNum) {
+TokenStream tokenise(char* src) {
     Token tokens[4096];
     int tokenCount = 0;
 
@@ -55,9 +55,13 @@ TokenStream tokenise(char* src, int lineNum) {
     int identCount = 0;
 
     int stateSaveI;
+    int lineNum = 1;
 
     for (int i = 0; src[i] != '\0'; i++) {
 
+        if (src[i] == '\n') {lineNum++; continue;};
+
+    
         if (isSkippable(src[i])) {
             continue;
         }
@@ -82,6 +86,11 @@ TokenStream tokenise(char* src, int lineNum) {
                 memset(ident, 0, sizeof(ident));
                 for (; src[i] != '\0' && isInt(src[i]); i++) {
                     ident[identCount++] = src[i];
+                    if (src[i+1] != '\0' && isAlpha(src[i+1])) {
+                        continue;
+                    } else {
+                        break;
+                    }
                 };
                 tokens[tokenCount++] = token(ident, NUMBER, lineNum, stateSaveI++);
                 ident[identCount] = '\0';
@@ -90,6 +99,11 @@ TokenStream tokenise(char* src, int lineNum) {
                 memset(ident, 0, sizeof(ident));
                 for (; src[i] != '\0' && isAlpha(src[i]); i++) {
                     ident[identCount++] = src[i];
+                    if (src[i+1] != '\0' && isAlpha(src[i+1])) {
+                        continue;
+                    } else {
+                        break;
+                    }
                 };
                 ident[identCount] = '\0';
 
@@ -100,8 +114,9 @@ TokenStream tokenise(char* src, int lineNum) {
                 } else {
                     tokens[tokenCount++] = token(ident, IDENTIFIER, lineNum, stateSaveI++);
                 };
+            } else {
+                err
             }
-            i--;
         }
         
     }
@@ -109,6 +124,6 @@ TokenStream tokenise(char* src, int lineNum) {
 
     TokenStream tokenstream;
     memcpy(tokenstream.stream, tokens, tokenCount * sizeof(Token));
-    tokenstream.count = tokenCount;   // 🔥 THIS IS REQUIRED
+    tokenstream.count = tokenCount;
     return tokenstream;
 }

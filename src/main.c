@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include "../include/liner.h"
 #include "../include/lexer.h"
 
 void printTokenStream(TokenStream ts) {
@@ -17,16 +16,12 @@ void printTokenStream(TokenStream ts) {
 }
 
 int main() {
-    char code[] = "int main = (5+35*6); log main";
+    char code[] = "int main = (5+35*6); log main;";
 
-    int len;  // FIX: was uninitialised pointer
 
-    char **splited = lineSplit(code, &len);  // FIX: pass address properly
-    printf("Len = %d\n", len);
-    for (int i = 0; i < len; i++) {  // FIX: no pointer dereference
-        TokenStream ts = tokenise(splited[i], i + 1);
-        printTokenStream(ts);
-    }
+    TokenStream ts = tokenise(code);
+    printTokenStream(ts);
+
 
     return 0;
 }
