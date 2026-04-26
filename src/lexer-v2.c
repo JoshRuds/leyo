@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 const char OPERATORS[] = "+-*/^";
 const char CONDITIONS[] = "><!";
@@ -19,11 +20,11 @@ bool isInt(char src) {
 }
 
 typedef enum {
-    NORMAL,
-    STRING,
-    NUMBER,
-    IDENTIFIER,
-    COMMENT
+    M_NORMAL,
+    M_STRING,
+    M_NUMBER,
+    M_IDENTIFIER,
+    M_COMMENT
 } LexerMode;
 
 typedef struct {
@@ -56,30 +57,94 @@ void push(Token token) {
 }
 
 char peek() {
-    l->i
+    return src[l->i+1];
 }
 
-Token handleNormal() {
-
+char current() {
+    return src[l->i];
 }
 
-Token handleString() {
-    
-}
-
-Token handleIdentifier() {
-    
-}
-
-Token handleNumber() {
-    
-}
-
-Token handleComment() {
-    while (true) {
-        if (peek() == )
+void advance() {
+    l->i++;
+    if (current() == '\n') {
+        l->line++;
+        l->collumn = 0;
+    } else {
+        l->collumn++;
     }
+}
+
+void handleNormal() {
+    if (current() == '~') {
+        l->mode = M_COMMENT;
+        advance();
+        return;
+    } else if (current() == '"') {
+        l->mode = M_STRING;
+        advance();
+        return;
+    }
+}
+
+void handleString() {
     
+    int buffSize = 0;
+    int buffCap = 32;
+    char *buff = malloc(buffCap);
+    if (!buff) {
+        raise("Out of memory", l->line, l->collumn);
+        return;
+    }
+
+    while (true) {
+        if (current() == '\n' || current() == '\0') {
+            raise("Unterminated String Literal", l->line, l->collumn);
+            break;
+        }
+
+        if (current() == '"') {
+            buff[buffSize] = '\0';
+            push(token(buff, M_STRING));
+            break;
+        }
+
+
+        if (buffSize >= buffCap - 1) {
+            buffCap *= 2;
+            char *tmp = realloc(buff, buffCap);
+
+            if (!tmp) {
+                free(buff);
+                raise("Out of memory", l->line, l->collumn);
+                return;
+            }
+            buff = tmp;
+        }
+        buff[buffSize++] = current();
+        advance();
+    }
+    free(buff);
+    return;
+}
+
+void handleIdentifier() {
+    return;
+}
+
+void handleNumber() {
+    return;
+}
+
+void handleComment() {
+    while (true) {
+        if (current() == '\n' || current() == '~') {
+            l->mode = M_NORMAL;
+            break;
+        } else {
+            advance();
+        }
+    }
+    return;
 }
 
 
@@ -90,29 +155,30 @@ TokenStream tokenise(char* _src) {
     l->i = 0;
     l->collumn = 1;
     l->line = 1;
-    l->mode = NORMAL;
+    l->mode = M_NORMAL;
     
     while (src[l->i] != '\0') {
         switch (l->mode) {
-            case NORMAL:
+            case M_NORMAL:
                 handleNormal(src);
                 break;
 
-            case STRING:
+            case M_STRING:
                 handleString(src);
                 break;
 
-            case IDENTIFIER:
+            case M_IDENTIFIER:
                 handleIdentifier(src);
                 break;
 
-            case NUMBER:
+            case M_NUMBER:
                 handleNumber(src);
                 break;
 
-            case COMMENT:
+            case M_COMMENT:
                 handleComment(src);
                 break;
         }
     }
+    return lexRes;
 }
