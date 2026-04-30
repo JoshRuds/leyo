@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../include/lexer.h"
+#include "../include/parser.h"
 #include "../include/errors.h"
 
 const char *tokenTypeName(TokenType t) {
@@ -38,6 +39,88 @@ void printTokenStream(TokenStream ts) {
     }
 }
 
+static void printIndent(int depth) {
+    for (int i = 0; i < depth; i++) {
+        printf("  ");
+    }
+}
+
+void printAST(ASTNode *node, int depth) {
+    if (!node) return;
+
+    printIndent(depth);
+
+    switch (node->type) {
+
+        case AST_NUMBER:
+            printf("NUMBER: %s\n", node->value);
+            break;
+
+        case AST_IDENTIFIER:
+            printf("IDENTIFIER: %s\n", node->value);
+            break;
+
+        case AST_BINARY_EXPR:
+            printf("BINARY_EXPR: %s\n", node->value ? node->value : "op");
+
+            printAST(node->left, depth + 1);
+            printAST(node->right, depth + 1);
+            break;
+
+        default:
+            printf("UNKNOWN AST NODE\n");
+            break;
+    }
+
+    // Optional: print children (only if you actually use them)
+    if (node->children && node->childCount > 0) {
+        printIndent(depth);
+        printf("CHILDREN:\n");
+
+        for (int i = 0; i < node->childCount; i++) {
+            printAST(&node->children[i], depth + 1);
+        }
+    }
+}
+
+void printStatement(Statement *stmt, int depth) {
+    printIndent(depth);
+
+    switch (stmt->type) {
+
+        case STMT_VAR_DECL:
+            printf("VAR_DECL\n");
+
+            for (int i = 0; i < stmt->count; i++) {
+                printAST(&stmt->body[i], depth + 1);
+            }
+            break;
+
+        case STMT_BLOCK:
+            printf("BLOCK\n");
+            for (int i = 0; i < stmt->count; i++) {
+                printAST(&stmt->body[i], depth + 1);
+            }
+            break;
+
+        case STMT_EMPTY:
+            printf("EMPTY\n");
+            break;
+
+        default:
+            printf("UNKNOWN STATEMENT\n");
+            break;
+    }
+}
+
+void printProgram(Program *program) {
+    printf("PROGRAM\n");
+
+    for (int i = 0; i < program->count; i++) {
+        printStatement(&program->body[i], 1);
+    }
+}
+
 int main() {
 
     FILE *file = fopen("test.leyo", "rb");
@@ -58,6 +141,16 @@ int main() {
         callAllErr();
     }
 
+    Program ast = parse(ts);
+    if (!(ast.body == NULL || ast.count == 0)) {
+        printf("AST IS ALIVE!!!\n");
+    }
+    printProgram(&ast);
+    
+
+    if (isErr) {
+        callAllErr();
+    }
 
     return 0;
 }

@@ -3,6 +3,8 @@
 #include <string.h>
 #include "../include/errors.h"
 
+#define STRICT_MODE true
+
 static Error errors[100];
 static int error_count = 0;
 
@@ -23,6 +25,10 @@ void raise(const char *msg, int line, int col) {
     errors[error_count].column = col;
 
     error_count++;
+
+    if (STRICT_MODE) {
+        callAllErr();
+    }
 }
 
 void callAllErr() {

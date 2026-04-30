@@ -67,24 +67,24 @@ Token token(const char *value, TokenType type) {
     return _token(value, type, l->line, l->collumn);
 }
 
-void push(Token token) {
+static void push(Token token) {
     lexRes.stream[lexRes.count++] = token;
 }
 
-char peek() {
+static char peek() {
     return src[l->i+1];
 }
 
-char current() {
+static char current() {
     return src[l->i];
 }
 
-char previous() {
+static char previous() {
     return src[l->i-1];
 }
 
 
-void advance() {
+static void advance() {
     l->i++;
     if (current() == '\n') {
         l->line++;
@@ -92,7 +92,6 @@ void advance() {
     } else {
         l->collumn++;
     }
-    printf("%c\n", current());
 }
 
 void handleNormal() {
@@ -102,21 +101,17 @@ void handleNormal() {
 
     if (c == '~') {
         l->mode = M_COMMENT;
-        printf("cmt mode");
         advance();
         return;
     } else if (c == '"') {
         l->mode = M_STRING;
-        printf("str mode");
         advance();
         return;
     } else if (isalpha(c)) {
         l->mode = M_IDENTIFIER;
-        printf("idnt mode");
         return;
     } else if (isdigit(c)) {
         l->mode = M_NUMBER;
-        printf("num mode");
         return;
     };
 
