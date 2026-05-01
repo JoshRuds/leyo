@@ -191,26 +191,40 @@ static void pushStatement(Statement *stmt, ASTNode node) {
     stmt->body[stmt->count++] = node;
 }
 
-static ASTNode astnode(ASTNodeType type, char *value) {
+static ASTNode vardefnode(char *value) {
     LOG("Node made");
-    ASTNode vardef;
-    vardef.type = type;
+    ASTNode vardef = {0};
+    vardef.type = AST_VAR_DECL;
+    vardef.value = value;
+    return vardef;
+}
+
+static ASTNode identnode(char *value) {
+    LOG("Node made");
+    ASTNode vardef = {0};
+    vardef.type = AST_IDENTIFIER;
     vardef.value = value;
     return vardef;
 }
 
 
+
 void parseVarDef(Statement *stmt) {
-    LOG("Var DECL");
     stmt->type = STMT_VAR_DECL;
-    pushStatement(stmt, astnode(AST_VAR_DECL, current().value)); // str / flt / int
+    pushStatement(stmt, vardefnode(current().value));
     expect(IDENTIFIER, "Invalid Sequence For Variable Declaration");
-    pushStatement(stmt, astnode(AST_IDENTIFIER, current().value)); // var name
+    pushStatement(stmt, identnode(current().value));
     expect(EQUALS, "Invalid Sequence For Variable Declaration");
+    advance();
     ASTNode *expr = parseExpression(0);
     pushStatement(stmt, *expr);
-    expect(SEMICOLON, "Did not find semicolon after statement.");
-    advance();
+
+    // current() is now on ';' — check it directly
+    if (current().type != SEMICOLON) {
+        raise("Did not find semicolon after statement.", current().line, current().collumn);
+        exit(1);
+    }
+    advance(); // move past ';'
     return;
 }
 
@@ -231,7 +245,7 @@ Statement parseStatement() {
     Statement stmt = {0};
     stmt.type = STMT_NULL;
     stmt.count = 0;
-    stmt.capacity = 1;
+    stmt.capacity = 0;
     stmt.startl = current().line;
     stmt.startc = current().collumn;
     stmt.endl = current().line;
