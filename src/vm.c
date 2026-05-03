@@ -6,7 +6,15 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+typedef struct {
+    uint8_t data;
+    int dataCount;
+    int pos;
+    
+} VM;
 
+VM vm;
+VM *v;
 
 // takes in bytecode and runs it 
 int runByteCode(ByteCodeResult bcr) {
