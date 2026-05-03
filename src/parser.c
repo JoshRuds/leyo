@@ -1,3 +1,4 @@
+
 #include "../include/type.h"
 #include "../include/errors.h"
 #include "../include/nodes.h"
@@ -19,12 +20,12 @@ typedef struct {
     int count;
 } Parser;
 
-char *VARDEFS[] = {
+static char *VARDEFS[] = {
     "str",
     "int",
     "flt",
 };
-int VARDEFCOUNT = 3;
+static int VARDEFCOUNT = 3;
 
 
 
@@ -56,6 +57,7 @@ static void expect(TokenType type, char *errorStr) {
     }
     advance();
 }
+
 
 static bool strIsVarDef(char *str) {
     for (int i = 0; i < VARDEFCOUNT; i++) {
@@ -280,3 +282,4 @@ Program parse(TokenStream tokens) {
 
     return program;
 }
+

@@ -39,6 +39,7 @@ void printTokenStream(TokenStream ts) {
     }
 }
 
+/*
 static void printIndent(int depth) {
     for (int i = 0; i < depth; i++) {
         printf("  ");
@@ -119,6 +120,13 @@ void printProgram(Program *program) {
     for (int i = 0; i < program->count; i++) {
         printStatement(&program->body[i], 1);
     }
+}*/
+
+void printByteCode(ByteCodeResult* bc) {
+    for (int i = 0; i < bc->length; i++) {
+        printf("%02x ", bc->data[i]);
+    }
+    printf("\n");
 }
 
 int main() {
@@ -141,11 +149,11 @@ int main() {
         callAllErr();
     }
 
-    Program ast = parse(ts);
-    if (!(ast.body == NULL || ast.count == 0)) {
+    ByteCodeResult bcr = parseToByteCode(ts);
+    if (!(bcr.data == NULL || bcr.length == 0)) {
         printf("AST IS ALIVE!!!\n");
     }
-    printProgram(&ast);
+    printByteCode(&bcr);
     
 
     if (isErr) {

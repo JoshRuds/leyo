@@ -22,12 +22,12 @@ typedef struct {
     int length;
 } ByteCodeResult;
 
-char *VARDEFS[] = {
+static char *VARDEFS[] = {
     "str",
     "int",
     "flt",
 };
-int VARDEFCOUNT = 3;
+static int VARDEFCOUNT = 3;
 
 ByteCoder bytecoder = {0};
 ByteCoder *b;
@@ -62,7 +62,7 @@ static void expectAndPass(TokenType type, char *errorStr) {
 }
 
 static void writeByte(uint8_t value) {
-    if (b->byteIndex >= sizeof(b->bytebuff)) {
+    if ((size_t)b->byteIndex >= sizeof(b->bytebuff)) {
         raise("Byte buffer overflow", current().line, current().collumn);
     }
 
@@ -70,7 +70,7 @@ static void writeByte(uint8_t value) {
     b->byteIndex++;
 }
 
-static void writeHexValue(uint8_t value, int digits) {
+static void writeHalfByte(uint8_t value) {
     if (!b->hasHalfByte) {
         b->halfByte = value & 0xF;
         b->hasHalfByte = 1;
@@ -79,6 +79,17 @@ static void writeHexValue(uint8_t value, int digits) {
         writeByte(full);
         b->hasHalfByte = 0;
     }
+}
+
+static void writeRawExpr(char *expr, uint8_t opcode) {
+    uint8_t len = (uint8_t)strlen(expr);
+
+    writeByte(opcode);
+
+    for (uint8_t i = 0; i < len; i++) {
+        writeByte((uint8_t)expr[i]);
+    }
+    writeByte(0xFF);
 }
 
 static bool strInVarDef(char *str) {
@@ -90,8 +101,58 @@ static bool strInVarDef(char *str) {
     return false;
 }
 
-void parseStatement() {
+static void parseVarDecl() {
+    writeHalfByte(0x1);
+    int arrOff = 0;
+    if (strcmp(peek().value, "arr") == 0) {
+        arrOff = 1;
+    }
 
+    if (strcmp(current().value, "int") == 0) {
+        writeHalfByte(0x1 + arrOff);
+    } else {
+        raise("Internal Parser Error - Dead Var Decl",
+            current().line,
+            current().collumn);
+    }
+
+    if (arrOff) {
+        advance(); // int arr *x*
+    }
+    expect(IDENTIFIER, "No identifier after var decl");
+    writeRawExpr(current().value, 0xFE);
+    expectAndPass(EQUALS, "No equals after var decl identifier");
+
+    char expr[1024];
+    int exprLoc = 0;
+
+    while (current().type != SEMICOLON) {
+        char *val = current().value;
+        for (int j = 0; val[j] != '\0'; j++) {
+            expr[exprLoc++] = val[j];
+        }
+        advance();
+    }
+
+    expr[exprLoc] = '\0';
+    writeRawExpr(expr, 0xFD);
+
+    advance(); // past semicolon
+}
+
+static void parseStatement() {
+    switch (current().type) {
+        case IDENTIFIER:
+            if (strInVarDef(current().value)) {
+                parseVarDecl();
+            }
+            break;
+        
+        default:
+            raise("Unknown Token Type", current().line, current().collumn);
+            break;
+    }
+    writeByte(0xf0); // end of line
 }
 
 ByteCodeResult parseToByteCode(TokenStream ts) {
@@ -104,8 +165,7 @@ ByteCodeResult parseToByteCode(TokenStream ts) {
     while (current().type != ENDOFSTREAM) {
         parseStatement();
     }
-
-
+    writeByte(0x00);
 
     if (b->hasHalfByte) {
         raise("Unpaired half-byte", current().line, current().collumn);

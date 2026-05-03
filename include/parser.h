@@ -1,9 +1,24 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "../include/nodes.h"
+#include <stdint.h>
 #include "../include/type.h"
 
-Program parse(TokenStream tokens);
+typedef struct {
+    Token *tokens;
+    int pos;
+    int count;
+    uint8_t bytebuff[2048];
+    int byteIndex;
+    int hasHalfByte;
+    uint8_t halfByte;
+} ByteCoder;
+
+typedef struct {
+    uint8_t *data;
+    int length;
+} ByteCodeResult;
+
+ByteCodeResult parseToByteCode(TokenStream ts);
 
 #endif
