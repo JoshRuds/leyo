@@ -47,7 +47,7 @@ void printByteCode(ByteCodeResult* bc) {
 }
 
 int main() {
-
+    initLog(".log");
     FILE *file = fopen("test.leyo", "rb");
     fseek(file, 0, SEEK_END);
     long size = ftell(file);

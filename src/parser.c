@@ -1,6 +1,6 @@
 #include "../include/type.h"
 #include "../include/errors.h"
-#include "../include/nodes.h"
+#include "../include/bytecode.h"
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>
@@ -89,7 +89,7 @@ static void writeRawExpr(char *expr, uint8_t opcode) {
     for (uint8_t i = 0; i < len; i++) {
         writeByte((uint8_t)expr[i]);
     }
-    writeByte(0xFF);
+    writeByte(BC_END_DELIM);
 }
 
 static bool strInVarDef(char *str) {
@@ -102,14 +102,14 @@ static bool strInVarDef(char *str) {
 }
 
 static void parseVarDecl() {
-    writeHalfByte(0x1);
+    writeHalfByte(BC_VAR_DECL_COMMON);
     int arrOff = 0;
     if (strcmp(peek().value, "arr") == 0) {
         arrOff = 1;
     }
 
     if (strcmp(current().value, "int") == 0) {
-        writeHalfByte(0x1 + arrOff);
+        writeHalfByte(BC_VAR_DECL_INT + arrOff);
     } else {
         raise("Internal Parser Error - Dead Var Decl",
             current().line,
@@ -120,7 +120,7 @@ static void parseVarDecl() {
         advance(); // int arr *x*
     }
     expect(IDENTIFIER, "No identifier after var decl");
-    writeRawExpr(current().value, 0xFE);
+    writeRawExpr(current().value, BC_IDENT_DELIM);
     expectAndPass(EQUALS, "No equals after var decl identifier");
 
     char expr[1024];
@@ -135,7 +135,7 @@ static void parseVarDecl() {
     }
 
     expr[exprLoc] = '\0';
-    writeRawExpr(expr, 0xFD);
+    writeRawExpr(expr, BC_EXPR_DELIM);
 
     advance(); // past semicolon
 }
@@ -152,7 +152,7 @@ static void parseStatement() {
             raise("Unknown Token Type", current().line, current().collumn);
             break;
     }
-    writeByte(0xf0); // end of line
+    writeByte(BC_END_OF_LINE); // end of line
 }
 
 ByteCodeResult parseToByteCode(TokenStream ts) {
@@ -162,10 +162,11 @@ ByteCodeResult parseToByteCode(TokenStream ts) {
     b->byteIndex = 0;
     b->hasHalfByte = 0;
 
+    writeByte(BC_START_END);
     while (current().type != ENDOFSTREAM) {
         parseStatement();
     }
-    writeByte(0x00);
+    writeByte(BC_START_END);
 
     if (b->hasHalfByte) {
         raise("Unpaired half-byte", current().line, current().collumn);
