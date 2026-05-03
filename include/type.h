@@ -28,7 +28,6 @@ typedef struct {
 
     int line;
     int collumn;
-
 } Token;
 
 typedef struct {

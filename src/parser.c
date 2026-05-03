@@ -28,8 +28,9 @@ static char *VARDEFS[] = {
     "str",
     "int",
     "flt",
+    "chr"
 };
-static int VARDEFCOUNT = 3;
+static int VARDEFCOUNT = 4;
 
 ByteCoder bytecoder = {0};
 ByteCoder *b;
@@ -39,10 +40,20 @@ static Token current() {
 }
 
 static Token previous() {
+    if (b->count-1==b->pos) {
+        logBuildParser("Too far - previoused into eos");
+        raise("Internal Parser Error: Too far - previoused into eos", current().line, current().collumn);
+        callAllErr();
+    }
     return b->tokens[b->pos-1];
 }
 
 static Token peek() {
+    if (b->count-1==b->pos) {
+        logBuildParser("Too far - peeked into eos");
+        raise("Internal Parser Error: Too far - peeked into eos", current().line, current().collumn);
+        callAllErr();
+    }
     return b->tokens[b->pos+1];
 }
 
@@ -134,11 +145,18 @@ static void parseVarDecl() {
 
     if (strcmp(current().value, "int") == 0) {
         writeHalfByte(BC_VAR_DECL_INT + arrOff);
+    } else if (strcmp(current().value, "str") == 0) {
+        writeHalfByte(BC_VAR_DECL_STR + arrOff);
+    } else if (strcmp(current().value, "flt") == 0) {
+        writeHalfByte(BC_VAR_DECL_FLT + arrOff);
+    } else if (strcmp(current().value, "chr") == 0) {
+        writeHalfByte(BC_VAR_DECL_CHR + arrOff);
     } else {
         logBuildParser("Invalid variable declaration type");
         raise("Internal Parser Error - Dead Var Decl",
             current().line,
             current().collumn);
+        callAllErr();
     }
 
     if (arrOff) {
@@ -175,7 +193,7 @@ static void parseVarDecl() {
     writeRawExpr(expr, BC_EXPR_DELIM);
 
     expectCurrent(SEMICOLON, "No semicolon after statement");
-    advance(); // past semicolon
+    //advance(); // past semicolon
 
     logBuildParser("Finished variable declaration");
 }
@@ -188,8 +206,8 @@ static void parseStatement() {
             if (strInVarDef(current().value)) {
                 parseVarDecl();
             } else {
-                logBuildParser("Unknown identifier in statement");
-                raise("Unknown Token Type", current().line, current().collumn);
+                logBuildParser("Unknown identifier in body");
+                raise("Unknown identifier in body", current().line, current().collumn);
             }
             break;
 

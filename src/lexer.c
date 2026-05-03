@@ -44,6 +44,7 @@ typedef struct {
     int i;
     int line;
     int collumn;
+    int scol;
     LexerMode mode;
 } Lexer;
 
@@ -62,11 +63,12 @@ Token _token(const char *value, TokenType type, int line, int collumn) {
 }
 
 Token token(const char *value, TokenType type) {
-    return _token(value, type, l->line, l->collumn);
+    return _token(value, type, l->line, l->scol);
 }
 
 static void push(Token token) {
     logBuildLexer("Token pushed to stream");
+    l->scol = l->collumn;
     lexRes.stream[lexRes.count++] = token;
 }
 
@@ -87,6 +89,7 @@ static void advance() {
     if (current() == '\n') {
         l->line++;
         l->collumn = 0;
+        l->scol = 0;
     } else {
         l->collumn++;
     }
@@ -332,6 +335,7 @@ TokenStream tokenise(char* _src) {
 
     l->i = 0;
     l->collumn = 1;
+    l->scol = 1;
     l->line = 1;
     l->mode = M_NORMAL;
 

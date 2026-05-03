@@ -17,6 +17,31 @@
 [BUILD][LEXER] Switching to NUMBER mode
 [BUILD][LEXER] Entering NUMBER mode
 [BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Switching to IDENTIFIER mode
+[BUILD][LEXER] Entering IDENTIFIER mode
+[BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Switching to IDENTIFIER mode
+[BUILD][LEXER] Entering IDENTIFIER mode
+[BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Switching to IDENTIFIER mode
+[BUILD][LEXER] Entering IDENTIFIER mode
+[BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Token pushed to stream
 [BUILD][LEXER] Token pushed to stream
 [BUILD][LEXER] Lexer finished
 [CONTROLLER] Tokenisation completed
@@ -30,5 +55,23 @@
 [BUILD][PARSER] Parsing identifier for variable declaration
 [BUILD][PARSER] Writing raw expression
 [BUILD][PARSER] Parsing expression for variable assignment
-[BUILD][PARSER] No semicolom before EndOfStream
-[ERROR] Line:1 Collumn:10 No semicolon before EndOfStream
+[BUILD][PARSER] Writing raw expression
+[BUILD][PARSER] Finished variable declaration
+[BUILD][PARSER] End of statement
+[BUILD][PARSER] Parsing statement
+[BUILD][PARSER] Parsing variable declaration
+[BUILD][PARSER] Stored first half-byte
+[BUILD][PARSER] Array declaration detected
+[BUILD][PARSER] Flushed half-byte pair into byte
+[BUILD][PARSER] Parsing identifier for variable declaration
+[BUILD][PARSER] Writing raw expression
+[BUILD][PARSER] Parsing expression for variable assignment
+[BUILD][PARSER] Writing raw expression
+[BUILD][PARSER] Finished variable declaration
+[BUILD][PARSER] End of statement
+[BUILD][PARSER] Parser finished successfully
+[CONTROLLER] Parsing to bytecode completed
+[CONTROLLER] AST successfully generated
+[CONTROLLER] Printing bytecode output
+[CONTROLLER] Finished printing bytecode output
+[CONTROLLER] Program finished successfully

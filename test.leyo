@@ -1,1 +1,2 @@
-int x = 5
+str x = 5;
+chr arr array = [];
