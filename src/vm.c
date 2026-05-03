@@ -10,5 +10,7 @@
 
 // takes in bytecode and runs it 
 int runByteCode(ByteCodeResult bcr) {
-    
+    logRuntime("VM STARTED");
+    bcr.length++;
+    return 0;
 }

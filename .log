@@ -1,0 +1,34 @@
+[CONTROLLER] Logger initialized
+[CONTROLLER] Input file opened successfully
+[CONTROLLER] File loaded into memory
+[BUILD][LEXER] Lexer started
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Switching to IDENTIFIER mode
+[BUILD][LEXER] Entering IDENTIFIER mode
+[BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Switching to IDENTIFIER mode
+[BUILD][LEXER] Entering IDENTIFIER mode
+[BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Entering NORMAL mode
+[BUILD][LEXER] Switching to NUMBER mode
+[BUILD][LEXER] Entering NUMBER mode
+[BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Token pushed to stream
+[BUILD][LEXER] Lexer finished
+[CONTROLLER] Tokenisation completed
+[CONTROLLER] Printing token stream
+[CONTROLLER] Finished printing token stream
+[BUILD][PARSER] Parser started
+[BUILD][PARSER] Parsing statement
+[BUILD][PARSER] Parsing variable declaration
+[BUILD][PARSER] Stored first half-byte
+[BUILD][PARSER] Flushed half-byte pair into byte
+[BUILD][PARSER] Parsing identifier for variable declaration
+[BUILD][PARSER] Writing raw expression
+[BUILD][PARSER] Parsing expression for variable assignment
+[BUILD][PARSER] No semicolom before EndOfStream
+[ERROR] Line:1 Collumn:10 No semicolon before EndOfStream

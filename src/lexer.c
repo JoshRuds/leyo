@@ -10,7 +10,6 @@ const char CONDITIONS[] = "><!";
 
 char *src;
 
-
 bool isAlpha(char src) {
     return (toupper(src) != tolower(src));
 }
@@ -30,7 +29,6 @@ bool charIn(char c, const char *toCheck) {
     for (int i = 0; toCheck[i] != '\0'; i++) {
         if (c == toCheck[i]) { return true; }
     };
-
     return false;
 }
 
@@ -68,6 +66,7 @@ Token token(const char *value, TokenType type) {
 }
 
 static void push(Token token) {
+    logBuildLexer("Token pushed to stream");
     lexRes.stream[lexRes.count++] = token;
 }
 
@@ -83,7 +82,6 @@ static char previous() {
     return src[l->i-1];
 }
 
-
 static void advance() {
     l->i++;
     if (current() == '\n') {
@@ -97,76 +95,92 @@ static void advance() {
 void handleNormal() {
     char c = current();
 
-    if (isspace(c) || c == '\n') {advance(); return;}
+    logBuildLexer("Entering NORMAL mode");
+
+    if (isspace(c) || c == '\n') { advance(); return; }
 
     if (c == '~') {
         l->mode = M_COMMENT;
+        logBuildLexer("Switching to COMMENT mode");
         advance();
         return;
-    } else if (c == '"') {
+    } 
+    else if (c == '"') {
         l->mode = M_STRING;
+        logBuildLexer("Switching to STRING mode");
         advance();
         return;
-    } else if (isalpha(c)) {
+    } 
+    else if (isalpha(c)) {
         l->mode = M_IDENTIFIER;
+        logBuildLexer("Switching to IDENTIFIER mode");
         return;
-    } else if (isdigit(c)) {
+    } 
+    else if (isdigit(c)) {
         l->mode = M_NUMBER;
+        logBuildLexer("Switching to NUMBER mode");
         return;
     };
 
-    if (c == '(') {push(token(charToStr(c), OPENBRAC));} else
-    if (c == ')') {push(token(charToStr(c), CLOSEBRAC));} else
-    if (c == ',') {push(token(charToStr(c), COMMA));} else 
-    if (c == ';') {push(token(charToStr(c), SEMICOLON));} else
-    if (c == '[') {push(token(charToStr(c), OPENSQUARE));} else
-    if (c == ']') {push(token(charToStr(c), CLOSESQUARE));} else
-    if (c == '{') {push(token(charToStr(c), OPENBRACE));} else
-    if (c == '}') {push(token(charToStr(c), CLOSEBRACE));} else
+    if (c == '(') { push(token(charToStr(c), OPENBRAC)); } else
+    if (c == ')') { push(token(charToStr(c), CLOSEBRAC)); } else
+    if (c == ',') { push(token(charToStr(c), COMMA)); } else 
+    if (c == ';') { push(token(charToStr(c), SEMICOLON)); } else
+    if (c == '[') { push(token(charToStr(c), OPENSQUARE)); } else
+    if (c == ']') { push(token(charToStr(c), CLOSESQUARE)); } else
+    if (c == '{') { push(token(charToStr(c), OPENBRACE)); } else
+    if (c == '}') { push(token(charToStr(c), CLOSEBRACE)); } else
     if (c == '=') {
         if (peek() == '=') {
             advance();
             if (peek() == '=') {
-                    advance();
-                    push(token("===", CONDITION));
+                advance();
+                push(token("===", CONDITION));
             } else {
                 push(token("==", CONDITION));
             }
         } else {
             push(token(charToStr(c), EQUALS));
         }
-    } else if (charIn(c, OPERATORS)) {
+    } 
+    else if (charIn(c, OPERATORS)) {
         push(token(charToStr(c), OPERATION));
-    } else if (charIn(c, CONDITIONS)) {
+    } 
+    else if (charIn(c, CONDITIONS)) {
         if (peek() == '=') {
             advance();
             char tmp[3] = { previous(), current(), '\0'};
             push(token(tmp, CONDITION));
         }
         push(token(charToStr(c), CONDITION));
-    } else {
-        push(token(charToStr(c), UNKNOWN));
+    } 
+    else {
         char buffer[48];
         snprintf(buffer, sizeof(buffer), "Invalid Character: %c", current());
+        logBuildLexer(buffer);
         raise(buffer, l->line, l->collumn);
+        push(token(charToStr(c), UNKNOWN));
     }
 
     advance();
-    return;
 }
 
 void handleString() {
-    
+    logBuildLexer("Entering STRING mode");
+
     int buffSize = 0;
     int buffCap = 32;
     char *buff = malloc(buffCap);
+
     if (!buff) {
+        logBuildLexer("String buffer allocation failed");
         raise("Out of memory", l->line, l->collumn);
         return;
     }
 
     while (true) {
         if (current() == '\n' || current() == '\0') {
+            logBuildLexer("Unterminated string detected");
             raise("Unterminated String Literal", l->line, l->collumn);
             free(buff);
             l->mode = M_NORMAL;
@@ -180,53 +194,56 @@ void handleString() {
             break;
         }
 
-
         if (buffSize >= buffCap - 1) {
             buffCap *= 2;
             char *tmp = realloc(buff, buffCap);
 
             if (!tmp) {
+                logBuildLexer("String realloc failed");
                 free(buff);
                 raise("Out of memory", l->line, l->collumn);
                 return;
             }
             buff = tmp;
         }
+
         buff[buffSize++] = current();
         advance();
     }
+
     advance();
     free(buff);
-    return;
 }
 
 void handleIdentifier() {
+    logBuildLexer("Entering IDENTIFIER mode");
 
     int buffSize = 0;
     int buffCap = 32;
     char *buff = malloc(buffCap);
 
     if (!buff) {
+        logBuildLexer("Identifier allocation failed");
         raise("Out of memory", l->line, l->collumn);
         return;
     }
 
     while (true) {
         char c = current();
-        if (!isalnum(c) && c != '_') {
 
+        if (!isalnum(c) && c != '_') {
             buff[buffSize] = '\0';
             push(token(buff, IDENTIFIER));
-
             l->mode = M_NORMAL;
             break;
         }
 
         if (buffSize >= buffCap - 1) {
             buffCap *= 2;
-
             char *tmp = realloc(buff, buffCap);
+
             if (!tmp) {
+                logBuildLexer("Identifier realloc failed");
                 free(buff);
                 raise("Out of memory", l->line, l->collumn);
                 return;
@@ -237,17 +254,20 @@ void handleIdentifier() {
         buff[buffSize++] = c;
         advance();
     }
+
     advance();
     free(buff);
 }
 
 void handleNumber() {
+    logBuildLexer("Entering NUMBER mode");
 
     int buffSize = 0;
     int buffCap = 32;
     char *buff = malloc(buffCap);
 
     if (!buff) {
+        logBuildLexer("Number allocation failed");
         raise("Out of memory", l->line, l->collumn);
         return;
     }
@@ -255,41 +275,47 @@ void handleNumber() {
     bool dotSeen = false;
 
     while (true) {
-
         char c = current();
-        if (!isdigit(c) && c != '.') {
 
+        if (!isdigit(c) && c != '.') {
             buff[buffSize] = '\0';
             push(token(buff, NUMBER));
-
             l->mode = M_NORMAL;
             break;
         }
+
         if (c == '.') {
             if (dotSeen) {
+                logBuildLexer("Invalid number format (multiple dots)");
                 raise("Invalid number format", l->line, l->collumn);
                 break;
             }
             dotSeen = true;
         }
+
         if (buffSize >= buffCap - 1) {
             buffCap *= 2;
-
             char *tmp = realloc(buff, buffCap);
+
             if (!tmp) {
+                logBuildLexer("Number realloc failed");
                 free(buff);
                 raise("Out of memory", l->line, l->collumn);
                 return;
             }
             buff = tmp;
         }
+
         buff[buffSize++] = c;
         advance();
     }
+
     free(buff);
 }
 
 void handleComment() {
+    logBuildLexer("Entering COMMENT mode");
+
     while (true) {
         if (current() == '\n' || current() == '~') {
             l->mode = M_NORMAL;
@@ -299,10 +325,7 @@ void handleComment() {
             advance();
         }
     }
-    return;
 }
-
-
 
 TokenStream tokenise(char* _src) {
     src = _src;
@@ -311,30 +334,20 @@ TokenStream tokenise(char* _src) {
     l->collumn = 1;
     l->line = 1;
     l->mode = M_NORMAL;
-    
+
+    logBuildLexer("Lexer started");
+
     while (current() != '\0') {
         switch (l->mode) {
-            case M_NORMAL:
-                handleNormal();
-                break;
-
-            case M_STRING:
-                handleString();
-                break;
-
-            case M_IDENTIFIER:
-                handleIdentifier();
-                break;
-
-            case M_NUMBER:
-                handleNumber();
-                break;
-
-            case M_COMMENT:
-                handleComment();
-                break;
+            case M_NORMAL: handleNormal(); break;
+            case M_STRING: handleString(); break;
+            case M_IDENTIFIER: handleIdentifier(); break;
+            case M_NUMBER: handleNumber(); break;
+            case M_COMMENT: handleComment(); break;
         }
     }
+
     push(token("EndOfStream", ENDOFSTREAM));
+    logBuildLexer("Lexer finished");
     return lexRes;
 }

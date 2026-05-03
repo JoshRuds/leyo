@@ -10,6 +10,9 @@ static int error_count = 0;
 
 bool isErr = false;
 
+
+static FILE *logFile = NULL;
+
 void logBuildLexer(const char *msg) {
     if (!logFile) return;
 
@@ -28,6 +31,13 @@ void logRuntime(const char *msg) {
     if (!logFile) return;
 
     fprintf(logFile, "[RUNTIME] %s\n", msg);
+    fflush(logFile); // ensures it is written immediately
+}
+
+void logController(const char *msg) {
+    if (!logFile) return;
+
+    fprintf(logFile, "[CONTROLLER] %s\n", msg);
     fflush(logFile); // ensures it is written immediately
 }
 
@@ -71,7 +81,6 @@ void callAllErr() {
     quick_exit(1);
 }
 
-static FILE *logFile = NULL;
 
 void initLog(const char *filename) {
     logFile = fopen(filename, "w"); // overwrite each run

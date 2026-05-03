@@ -16,4 +16,9 @@ extern bool isErr;
 
 void initLog(const char *filename);
 
+void logBuildLexer(const char *msg);
+void logBuildParser(const char *msg);
+void logRuntime(const char *msg);
+void logController(const char *msg);
+
 #endif

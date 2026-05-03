@@ -27,6 +27,8 @@ const char *tokenTypeName(TokenType t) {
 }
 
 void printTokenStream(TokenStream ts) {
+    logController("Printing token stream");
+
     for (int i = 0; i < ts.count; i++) {
         Token t = ts.stream[i];
 
@@ -37,45 +39,81 @@ void printTokenStream(TokenStream ts) {
         printf("  Column : %d\n", t.collumn);
         printf("\n");
     }
+
+    logController("Finished printing token stream");
 }
 
 void printByteCode(ByteCodeResult* bc) {
+    logController("Printing bytecode output");
+
     for (int i = 0; i < bc->length; i++) {
         printf("%02x ", bc->data[i]);
     }
     printf("\n");
+
+    logController("Finished printing bytecode output");
 }
 
 int main() {
+    logController("Program started");
+
     initLog(".log");
+    logController("Logger initialized");
+
     FILE *file = fopen("test.leyo", "rb");
+    if (!file) {
+        logController("Failed to open input file");
+        raise("File open error", 0, 0);
+        return 1;
+    }
+
+    logController("Input file opened successfully");
+
     fseek(file, 0, SEEK_END);
     long size = ftell(file);
     rewind(file);
+
     char *buffer = malloc(size + 1);
-    if (!buffer) return 1;
+    if (!buffer) {
+        logController("Memory allocation failed for file buffer");
+        fclose(file);
+        return 1;
+    }
+
     fread(buffer, 1, size, file);
     buffer[size] = '\0';
     fclose(file);
 
+    logController("File loaded into memory");
 
     TokenStream ts = tokenise(buffer);
+    logController("Tokenisation completed");
+
     printTokenStream(ts);
 
     if (isErr) {
+        logController("Errors detected after tokenisation");
         callAllErr();
     }
 
     ByteCodeResult bcr = parseToByteCode(ts);
+    logController("Parsing to bytecode completed");
+
     if (!(bcr.data == NULL || bcr.length == 0)) {
+        logController("AST successfully generated");
         printf("AST IS ALIVE!!!\n");
+    } else {
+        logController("AST generation failed or empty");
     }
+
     printByteCode(&bcr);
-    
 
     if (isErr) {
+        logController("Errors detected after parsing stage");
         callAllErr();
     }
+
+    logController("Program finished successfully");
 
     return 0;
 }
