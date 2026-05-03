@@ -14,4 +14,6 @@ void callAllErr();
 
 extern bool isErr;
 
+void initLog(const char *filename);
+
 #endif
