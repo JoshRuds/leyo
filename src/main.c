@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../include/lexer.h"
 #include "../include/parser.h"
 #include "../include/errors.h"
@@ -54,13 +55,24 @@ void printByteCode(ByteCodeResult* bc) {
     logController("Finished printing bytecode output");
 }
 
-int main() {
-    logController("Program started");
+char *getVersion() {
+    logController("Fetching Version...");
+    FILE *vfile = fopen("VERSION.txt", "r");
+    if (!vfile) {
+        logController("Failed to open input file");
+        raise("File open error", 0, 0);
+        callAllErr();
+    }
+    logController("Version Fetched.");
+    static char buff[64];
+    fgets(buff, 64, vfile);
+    return buff;
+}
 
-    initLog(".log");
-    logController("Logger initialized");
+int build(char *filename) {
+    logController("Build started");
 
-    FILE *file = fopen("test.leyo", "rb");
+    FILE *file = fopen(filename, "rb");
     if (!file) {
         logController("Failed to open input file");
         raise("File open error", 0, 0);
@@ -73,6 +85,7 @@ int main() {
     long size = ftell(file);
     rewind(file);
 
+    
     char *buffer = malloc(size + 1);
     if (!buffer) {
         logController("Memory allocation failed for file buffer");
@@ -100,10 +113,9 @@ int main() {
     logController("Parsing to bytecode completed");
 
     if (!(bcr.data == NULL || bcr.length == 0)) {
-        logController("AST successfully generated");
-        printf("AST IS ALIVE!!!\n");
+        logController("Bytecode successfully generated");
     } else {
-        logController("AST generation failed or empty");
+        logController("Bytecode generation failed or empty");
     }
 
     printByteCode(&bcr);
@@ -113,7 +125,54 @@ int main() {
         callAllErr();
     }
 
-    logController("Program finished successfully");
+    logController("Program built successfully");
+
+    return 0;
+}
+
+int run() {
+    
+}
+
+int main(int argc, char *argv[]) {
+    initLog("test.log");
+    logController("Logger initialized");
+    
+    const char *version = getVersion();
+
+    logController("Running Leyo");
+    logController("Version:");
+    logController(version);
+
+
+    if (argc == 1) { //no cl-arg
+        printf("Leyo version v%s\nAuthored by Josh Ruddick", version);
+        return 0;
+    }
+
+    if (strcmp(argv[1], "build") == 0) {
+        if (argc != 3) {
+            logController("Too little command line args");
+            raise("Too little command line args", 0,0);
+            callAllErr();
+        }
+        return build(argv[2]);
+    } else if (strcmp(argv[1], "run") == 0) {
+        run();
+    } else if (strcmp(argv[1], "repl") == 0) {
+        ;
+    } else if (strcmp(argv[1], "test") == 0) {
+        ;
+    } else {
+        logController("Unkown command line argument");
+        raise("Unkown command line argument", 0,0);
+        callAllErr();
+    }
+
+
+    
+
+
 
     return 0;
 }
