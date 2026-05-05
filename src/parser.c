@@ -114,12 +114,13 @@ static void writeRawExpr(char *expr, uint8_t opcode) {
     uint8_t len = (uint8_t)strlen(expr);
 
     writeByte(opcode);
+    writeByte(len);
 
     for (uint8_t i = 0; i < len; i++) {
         writeByte((uint8_t)expr[i]);
     }
 
-    writeByte(BC_END_DELIM);
+    // delim - writeByte(BC_END_DELIM);
 }
 
 static bool strInVarDef(char *str) {
