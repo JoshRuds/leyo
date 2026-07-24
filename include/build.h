@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file build.h
+/// @brief Header for the build handler.
+
 #ifndef BUILD_H
 #define BUILD_H
 

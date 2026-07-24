@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file args.h
+/// @brief Header for the custom argparser.
+
 #ifndef ARGPARSE_H
 #define ARGPARSE_H
 

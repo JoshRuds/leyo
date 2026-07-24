@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file parser.c
+/// @brief The parser.
+
 #include "../include/type.h"
 #include "../include/parser.h"
 #include "../include/lexer.h"

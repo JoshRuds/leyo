@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file diagnostics.c
+/// @brief The diagnoser.
+
 #include <stdio.h>
 #include "../include/parser.h"
 

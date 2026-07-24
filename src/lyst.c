@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file lyst.c
+/// @brief The LYST handler.
+
 #include "../include/lyst.h"
 #include "../include/errors.h"
 #include "../include/codes.h"

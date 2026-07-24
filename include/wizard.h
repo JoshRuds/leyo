@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file wizard.h
+/// @brief Header for the LYST wizard.
+
 #ifndef WIZARD_H
 #define WIZARD_H
 

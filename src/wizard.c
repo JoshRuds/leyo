@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file wizard.c
+/// @brief The LYST setup wizard.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>

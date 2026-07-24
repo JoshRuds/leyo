@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file external.h
+/// @brief Header for the external network functionality.
+
 #ifndef EXTERNAL_H
 #define EXTERNAL_H
 

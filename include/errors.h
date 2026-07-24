@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file errors.h
+/// @brief Header for the error handler.
+
 #ifndef ERROR_H
 #define ERROR_H
 

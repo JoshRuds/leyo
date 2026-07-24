@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file type.h
+/// @brief Header for the token-based aspects of lexing and parsing.
+
 #ifndef TYPE_H
 #define TYPE_H
 #define MAX_TOKENS_PER_LINE 256

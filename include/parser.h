@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file parser.h
+/// @brief Header for the parser.
+
 #ifndef PARSER_H
 #define PARSER_H
 

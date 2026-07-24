@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file lexer.c
+/// @brief The lexer.
+
 #include "../include/type.h"
 #include "../include/errors.h"
 #include "../include/codes.h"

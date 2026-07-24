@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file vm.c
+/// @brief The VM.
+
 #include "../include/errors.h"
 #include "../include/codes.h"
 #include "../include/parser.h"

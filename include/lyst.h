@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file lyst.h
+/// @brief Header for the LYST configurator.
+
 #ifndef LYST_H
 #define LYST_H
 

@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file errors.c
+/// @brief The error handler.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

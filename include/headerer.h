@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file headerer.h
+/// @brief Header for the bytecode-headerer.
+
 #ifndef HEADERER_H
 #define HEADERER_H
 

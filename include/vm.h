@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file vm.h
+/// @brief Header for the VM.
+
 #ifndef VM_H
 #define VM_H
 

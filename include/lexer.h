@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file lexer.h
+/// @brief Header for the lexer.
+
 #ifndef LEXER_H
 #define LEXER_H
 

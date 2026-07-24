@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file diagnostics.h
+/// @brief Header for the diagnostic section.
+
 #ifndef DIAGNOSTICS_H
 #define DIAGNOSTICS_H
 

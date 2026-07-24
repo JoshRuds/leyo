@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file build.c
+/// @brief The build handler.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "../include/lexer.h"

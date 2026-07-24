@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file tests.c
+/// @brief The test suite.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "../include/errors.h"

@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file codes.c
+/// @brief Error code definitions.
+
 #include <stdbool.h>
 #include "../include/codes.h"
 

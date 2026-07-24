@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file tests.h
+/// @brief Header for the testing suite.
+
 #ifndef TESTS_H
 #define TESTS_H
 

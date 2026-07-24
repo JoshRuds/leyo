@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file disassembler.c
+/// @brief The disassembler.
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>

@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file helper.c
+/// @brief The help screen.
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>

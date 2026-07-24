@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file native.h
+/// @brief Header for native functions.
+
 #ifndef NATIVE_H
 #define NATIVE_H
 
