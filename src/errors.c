@@ -20,7 +20,6 @@
 
 #include "../include/errors.h"
 #include "../include/codes.h"
-#include "../include/codes.h"
 
 #define STRICT_MODE 0
 
@@ -44,7 +43,8 @@ static LogConfig logConfig = {
     .archivePath = "logs/archive/"
 };
 
-typedef struct {
+/// @brief Statistics for how many logs have been archived or deleted.
+typedef struct { 
     int archived;
     int deleted;
 } RetentionStats;
@@ -513,6 +513,9 @@ void lraise(WhereFrom wf, ErrorCode code, int line, int col, char filename[512])
     }
 }
 
+/// @brief Prints the given error.
+/// @param err The raised error.
+/// @param related The related error information.
 static void printErr(RaisedError *err, const Error *related) {
     if (err->wf == WF_GENERAL) {
         fprintf(stderr,
