@@ -181,7 +181,8 @@ int main(int argc, char *argv[]) {
 
         char *in = (char*)lystGet("build/in");
         char *out = (char*)lystGet("build/out");
-        return build(in, out, false, false); // TODO fix up and add lyst setting
+        bool dump = isFlag(&parser, "-d") || isFlag(&parser, "--dump"); // TODO add lyst setting for default
+        return build(in, out, false, dump);
 
     } else if (isCommand(&parser, "github")) {
         logController("Opening Github");
