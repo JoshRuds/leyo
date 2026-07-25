@@ -11,7 +11,7 @@
 
 #include "../include/parser.h"
 
-
+/// @brief The header found at the top of LYBC files.
 typedef struct {
     char magic[4];
     char version[64];
@@ -19,7 +19,9 @@ typedef struct {
     uint32_t code_size;
 } LeyoHeader;
 
-
-ByteCodeResult headThis(ByteCodeResult);
+/// @brief A helper to add a header to parsed bytecode.
+/// @param bcr The un-headered bytecode.
+/// @return The bytecode with a header.
+ByteCodeResult headThis(ByteCodeResult bcr);
 
 #endif

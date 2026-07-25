@@ -9,6 +9,8 @@
 #ifndef HELPER_H
 #define HELPER_H
 
+/// @brief 
+/// @param query Optional argument to specify what to search for.
 void printHelp(const char *query);
 
 #endif

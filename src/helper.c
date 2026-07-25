@@ -19,16 +19,16 @@ typedef struct {
 } HelpEntry;
 
 static const HelpEntry helpEntries[] = {
-    {"help", "help [query]", "Show all CLI commands or filter by a search term"},
-    {"init", "init [--defaults]", "Create or rewrite .lyst configuration"},
-    {"build", "build <source> [output]", "Compile Leyo source into .lybc output"},
-    {"run", "run <file.lybc> [-V, --verbose]", "Execute compiled bytecode in the VM"},
-    {"repl", "repl", "Start the interactive evaluator"},
-    {"test", "test", "Run the built-in smoke test"},
-    {"disassemble", "disassemble <file.lybc> [--hex] [--head]", "Inspect bytecode in readable or hex form"},
-    {"dis", "dis <file.lybc> [--hex] [--head]", "Short alias for disassemble"},
-    {"do", "do", "Build using paths from .lyst"},
-    {"github", "github", "Open Leyo github"}
+    {"help",           "help [query]",                                  "Show all CLI commands or filter by a search term"},
+    {"init",           "init [--defaults]",                             "Create or rewrite .lyst configuration"},
+    {"build",          "build <source> [-o output] [-d, --dump]",       "Compile Leyo source into .lybc output"},
+    {"run",            "run <file.lybc> [-V, --verbose]",               "Execute compiled bytecode in the VM"},
+    {"repl",           "repl",                                          "Start the interactive evaluator"},
+    {"test",           "test",                                          "Run the built-in smoke test"},
+    {"disassemble",    "disassemble <file.lybc> [--hex] [--head]",      "Inspect bytecode in readable or hex form"},
+    {"dis",            "dis <file.lybc> [--hex] [--head]",              "Short alias for disassemble"},
+    {"do",             "do",                                            "Build using paths from .lyst"},
+    {"github",         "github",                                        "Open Leyo github"}
 };
 
 static const size_t helpEntryCount = sizeof(helpEntries) / sizeof(helpEntries[0]);
@@ -102,7 +102,7 @@ void printHelp(const char *query) {
     puts("  --diagnostics, -D    Print build and runtime diagnostics");
     puts("");
     puts("Notes:");
-    puts("  -s and --speed can be used anywhere and disables logging for performance");
+    puts("  - flags -s and --speed can be used anywhere and disables logging for performance");
     puts("  - help uses the first positional argument as a search term");
     puts("  - init --defaults writes the default .lyst without prompting");
 }
