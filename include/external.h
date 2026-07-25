@@ -6,8 +6,11 @@
 #ifndef EXTERNAL_H
 #define EXTERNAL_H
 
+/// @brief The link to the leyo github repository.
 extern const char githubLink[];
 
-void openGithub(void);
+/// @brief Opens default browser to the given link.
+/// @param link The link to go to.
+void gotoLink(const char *link);
 
 #endif
