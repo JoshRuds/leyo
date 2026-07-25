@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
     } else if (isCommand(&parser, "github")) {
         logController("Opening Github");
 
-        openGithub();
+        gotoLink(githubLink);
         return 0;
 
     } else if (isCommand(&parser, "update")) {

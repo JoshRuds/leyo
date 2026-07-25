@@ -12,16 +12,16 @@
 
 const char githubLink[] = "https://github.com/leyo-lang/leyo";
 
-void openGithub(void) {
-    size_t maxStrSize = (strlen(githubLink) * sizeof(char)) + (10 * sizeof(char));
+void gotoLink(const char *link) {
+    size_t maxStrSize = ((strlen(link) + 10) * sizeof(char));
     char *command = malloc(maxStrSize);
 
 #ifdef _WIN32
-    snprintf(command, maxStrSize, "start %s", githubLink);
+    snprintf(command, maxStrSize, "start %s", link);
 #elif __APPLE__
-    snprintf(command, maxStrSize, "open %s", githubLink);
+    snprintf(command, maxStrSize, "open %s", link);
 #else
-    snprintf(command, maxStrSize, "xdg-open %s", githubLink);
+    snprintf(command, maxStrSize, "xdg-open %s", link);
 #endif
 
     system(command);
