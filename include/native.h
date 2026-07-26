@@ -9,6 +9,7 @@
 #ifndef NATIVE_H
 #define NATIVE_H
 
+/// @brief The native commands used in parser and VM.
 typedef enum {
     NAT_LOG,
     NAT_DUMP,
