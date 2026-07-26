@@ -57,7 +57,7 @@ static Token current(void) {
 }
 
 static Token previous(void) {
-    if (b->count-1==b->pos) {
+    if (b->count-1<=b->pos) {
         logBuildParser("Too far - previoused into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_STARTOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
@@ -65,7 +65,7 @@ static Token previous(void) {
 }
 
 static Token peek(void) {
-    if (b->count-1==b->pos) {
+    if (b->count+1>=b->pos) {
         logBuildParser("Too far - peeked into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
@@ -73,7 +73,7 @@ static Token peek(void) {
 }
 
 static Token peek2(void) {
-    if (b->count-2==b->pos) {
+    if (b->count+2>=b->pos) {
         logBuildParser("Too far - peeked into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
@@ -81,13 +81,15 @@ static Token peek2(void) {
 }
 
 static void advance(void) {
-    if (b->count+1==b->pos) {
+    if (b->count+1>=b->pos) {
         logBuildParser("Too far - advanced into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
     b->pos++;
 }
 
+/// @brief Expect the current value to be the given type, and move past it.
+/// @param type The type to expect.
 static void expectCurrent(TokenType type) {
     if (type != current().type) {
         logBuildParser("Expect failed (current mismatch)");
@@ -100,6 +102,8 @@ static void expectCurrent(TokenType type) {
     advance();
 }
 
+/// @brief Expect the next value to be the given type, and move onto it.
+/// @param type The type to expect.
 static void expect(TokenType type) {
     if (type != peek().type) {
         logBuildParser("Expect failed (peek mismatch)");
@@ -112,6 +116,8 @@ static void expect(TokenType type) {
     advance();
 }
 
+/// @brief Expect the next value to be the given type, and skip it. 
+/// @param type The type to expect.
 static void expectAndPass(TokenType type) {
     advance();
     if (type != current().type) {
@@ -191,6 +197,8 @@ static bool isModuleLoaded(const char *name) {
     return false;
 }
 
+/// @brief Checks current value against known types.
+/// @return The type of the current value.
 static TokenType getTypeVar(void) {
     if (strcmp(current().value, "int") == 0) {return NUMBER;}
     if (strcmp(current().value, "str") == 0) {return STRING;}
@@ -200,6 +208,8 @@ static TokenType getTypeVar(void) {
     return UNKNOWN;
 } 
 
+/// @brief Append current value to the result constant list.
+/// @param v The value to append.
 static void serializeValue(Value *v) {
     constEmit((uint8_t)v->flag);
 
@@ -266,6 +276,9 @@ static uint16_t emitConst(void) {
     return b->constAmt-1;
 }
 
+/// @brief Checks if the given string is a known keyword.
+/// @param tc The string to check.
+/// @return Bool - true if is keyword, else false.
 static bool isKeyword(char *tc) {
     char *keywords[] = {
         "int", "chr", "str", "flt", "arr",

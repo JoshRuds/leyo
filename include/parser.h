@@ -12,12 +12,14 @@
 #include <stdint.h>
 #include "../include/type.h"
 
+/// @brief A global object - contains a slot for where in the global array it is.
 typedef struct {
     char *name;
     uint16_t slot;
     TokenType type;
 } Global;
 
+/// @brief A flag for the value union.
 typedef enum {
     VAL_FLOAT,
     VAL_INT,
@@ -25,16 +27,22 @@ typedef enum {
     VAL_CHAR,
 } ValueFlag;
 
+/// @brief The value union. Describes how leyo values are to be held.
+/// @note String is to be sterilised later.
+typedef union {
+    int i;
+    double f;
+    char c;
+    char *s;
+} ValueTypes;
+
+/// @brief Describes a value for constants.
 typedef struct {
     ValueFlag flag;
-    union {
-        int i;
-        double f;
-        char c;
-        char *s; // sterilise later
-    } as;
+    ValueTypes as;
 } Value;
 
+/// @brief Descibes a function to be stored.
 typedef struct {
     char *name;
     uint32_t address;
@@ -42,6 +50,8 @@ typedef struct {
     // todo add args 
 } Func;
 
+/// @brief Bytecoder object - contains all data that the parser needs.
+/// @note Internal only.
 typedef struct {
     Token *tokens;
     uint32_t pos;
@@ -69,17 +79,23 @@ typedef struct {
     char currentFileName[512];
 } ByteCoder;
 
+/// @brief A buffer for constants.
 typedef struct {
     uint8_t *data;
     int length;
 } ConstBuffer;
 
+/// @brief The result to be passed between processes.
 typedef struct {
     uint8_t *data;
     int length;
     ConstBuffer cb;
 } ByteCodeResult;
 
+/// @brief The entry point to parsing.
+/// @param ts A tokenstream from the tokeniser.
+/// @param currentFileName The filename. Used for errors and dependancies.
+/// @return A bytecoderesult object to be headered then stored.
 ByteCodeResult parse(TokenStream *ts, char *currentFileName);
 
 #endif
