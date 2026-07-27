@@ -131,6 +131,8 @@ static void expectAndPass(TokenType type) {
     advance();
 }
 
+/// @brief Appends the one-byte value to the byte-buffer.
+/// @param value The byte to append.
 static void emit(uint8_t value) {
     checkByteBuff();
     if (b->byteIndex >= b->byteCap) {
@@ -141,11 +143,15 @@ static void emit(uint8_t value) {
     b->bytebuff[b->byteIndex++] = value;
 }
 
+/// @brief Appends the two-byte value to the byte-buffer.
+/// @param value The two bytes to append.
 static void emit16(uint16_t value) {
     emit((uint8_t)(value & 0xFF));
     emit((uint8_t)((value >> 8) & 0xFF));
 }
 
+/// @brief Appends the four-byte value to the byte-buffer.
+/// @param value The four bytes to append.
 static void emit32(uint32_t value) {
     emit((uint8_t)(value & 0xFF));
     emit((uint8_t)((value >> 8) & 0xFF));
@@ -153,12 +159,17 @@ static void emit32(uint32_t value) {
     emit((uint8_t)((value >> 24) & 0xFF));
 }
 
+/// @brief Emits a empty four-byte slot.
+/// @return The location.
 static uint32_t reserve32(void) {
     uint32_t pos = b->byteIndex;
     emit32(0);
     return pos;
 }
 
+/// @brief Emits four-bytes at the given slot.
+/// @param loc Where to emit.
+/// @param value The four-byte value to emit.
 static void patch32(uint32_t loc, uint32_t value) {
     if (loc + 3 >= b->byteIndex) {
         logBuildParser("Invalid patch location");
@@ -172,10 +183,15 @@ static void patch32(uint32_t loc, uint32_t value) {
     b->bytebuff[loc+3] = (uint8_t)((value >> 24) & 0xFF);
 }
 
+/// @brief Emits a byte to the const buffer.
+/// @param v The byte to emit.
 static void constEmit(uint8_t v) {
     constBuf.data[constBuf.length++] = v;
 }
 
+/// @brief Adds a name to the module list.
+/// @param name The name of the module.
+/// @note No side effects - just adds a string to a register.
 static void addModule(const char *name) {
     if (b->moduleAmt == b->moduleCap) {
         b->moduleCap *= 2;
@@ -188,6 +204,9 @@ static void addModule(const char *name) {
     b->modulesLoaded[b->moduleAmt++] = strdup(name);
 }
 
+/// @brief Checks if a name is in the module list.
+/// @param name The name to check.
+/// @return Bool - true if it is in the register, else false. 
 static bool isModuleLoaded(const char *name) {
     for (int i = 0; i < b->moduleAmt; i++) {
         if (strcmp(b->modulesLoaded[i], name) == 0) {
@@ -245,6 +264,8 @@ static void serializeValue(Value *v) {
     }
 }
 
+/// @brief Emits a constant to the const pool and returns its slot.
+/// @return The slot at which the const is set at.
 static uint16_t emitConst(void) {
     Value v = {0};
     switch (current().type) {
