@@ -52,10 +52,14 @@ static void checkByteBuff(void) {
     }
 }
 
+/// @brief Get the current token.
+/// @return The token at the current parser position.
 static Token current(void) {
     return b->tokens[b->pos];
 }
 
+/// @brief Get the previous token.
+/// @return The token at the previous parser position.
 static Token previous(void) {
     if (b->count-1<=b->pos) {
         logBuildParser("Too far - previoused into eos");
@@ -64,6 +68,8 @@ static Token previous(void) {
     return b->tokens[b->pos-1];
 }
 
+/// @brief Get the next token.
+/// @return The token at the next parser position.
 static Token peek(void) {
     if (b->count+1>=b->pos) {
         logBuildParser("Too far - peeked into eos");
@@ -72,6 +78,8 @@ static Token peek(void) {
     return b->tokens[b->pos+1];
 }
 
+/// @brief Get the token 2 ahead.
+/// @return The token at the parser position + 2.
 static Token peek2(void) {
     if (b->count+2>=b->pos) {
         logBuildParser("Too far - peeked into eos");
@@ -80,6 +88,7 @@ static Token peek2(void) {
     return b->tokens[b->pos+2];
 }
 
+/// @brief Move the parser position on by one.
 static void advance(void) {
     if (b->count+1>=b->pos) {
         logBuildParser("Too far - advanced into eos");
@@ -318,22 +327,41 @@ static bool isKeyword(char *tc) {
     return false;
 }
 
-static int define(char *name, TokenType type) {
-    isKeyword(name);
+/// @brief Checks if name is valid against other defined and keywords.
+/// @param name Name to check.
+/// @param noRaise Defines if the helper should raise errors if not valid.
+/// @return Bool - true if not valid, else false.
+static bool isNameNotValid(const char *name, bool noRaise) {
+    bool res = isKeyword(name);
+    if (res) 
+        return res;
+
     for (int i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
             lraise(WF_BUILD, ERR_PARSER_VAR_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
-            return b->globals[i].slot;
+            return true;
+            // return b->globals[i].slot;
         }
     }
+
     for (int i = 0; i < b->funcAmt; i++) {
         if (strcmp(b->funcs[i].name, name) == 0) {
             lraise(WF_BUILD, ERR_PARSER_FUNC_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
-            return b->funcs[i].address;
+            return true;
+            // return b->funcs[i].address;
         }
     }
-    
 
+    return false;
+}
+
+/// @brief Defines a variable to be tracked.
+/// @param name Name of the variable.
+/// @param type Type of the variable.
+/// @return The slot in the globals table.
+static int define(const char *name, TokenType type) {
+    if (isNameNotValid(name, false))
+        return -1;
 
     int slot = b->globalCount;
 
@@ -345,7 +373,7 @@ static int define(char *name, TokenType type) {
     return slot;
 }
 
-static uint32_t definef(char *name, TokenType ret) {
+static uint32_t definef(const char *name, TokenType ret) {
     isKeyword(name);
     for (int i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
