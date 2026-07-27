@@ -358,7 +358,7 @@ static bool isNameNotValid(const char *name, bool noRaise) {
 /// @brief Defines a variable to be tracked.
 /// @param name Name of the variable.
 /// @param type Type of the variable.
-/// @return The slot in the globals table.
+/// @return The slot in the variable table.
 static int define(const char *name, TokenType type) {
     if (isNameNotValid(name, false))
         return -1;
@@ -373,20 +373,13 @@ static int define(const char *name, TokenType type) {
     return slot;
 }
 
+/// @brief Defines a function to be tracked.
+/// @param name Name of the function.
+/// @param type Type of the function.
+/// @return The slot in the function table.
 static uint32_t definef(const char *name, TokenType ret) {
-    isKeyword(name);
-    for (int i = 0; i < b->globalCount; i++) {
-        if (strcmp(b->globals[i].name, name) == 0) {
-            lraise(WF_BUILD, ERR_PARSER_VAR_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
-            return b->globals[i].slot;
-        }
-    }
-    for (int i = 0; i < b->funcAmt; i++) {
-        if (strcmp(b->funcs[i].name, name) == 0) {
-            lraise(WF_BUILD, ERR_PARSER_FUNC_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
-            return b->funcs[i].address;
-        }
-    }
+    if (isNameNotValid(name, false))
+        return -1;
 
     b->funcs[b->funcAmt].name = strdup(name);
     b->funcs[b->funcAmt].address = b->byteIndex;
@@ -396,9 +389,12 @@ static uint32_t definef(const char *name, TokenType ret) {
     logBuildParser("Registered Func With Name: ");
     logBuildParser(name);
 
-    return b->byteIndex;
+    return b->funcAmt-1;
 }
 
+/// @brief Returns the slot of a tracked variable.
+/// @param name Name of the variable.
+/// @return The slot in the varibale table.
 static int resolve(char *name) {
     for (int i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
@@ -410,6 +406,9 @@ static int resolve(char *name) {
     return 0;
 }
 
+/// @brief Returns the slot of a tracked function.
+/// @param name Name of the function.
+/// @return The slot in the function table.
 static uint32_t resolvef(char *name) {
     for (int i = 0; i < b->funcAmt; i++) {
         if (strcmp(b->funcs[i].name, name) == 0) {
@@ -426,6 +425,9 @@ static uint32_t resolvef(char *name) {
     return -1;
 }
 
+/// @brief Returns the type of a tracked variable.
+/// @param name Name of the variable.
+/// @return The type in the varibale table.
 static TokenType resolveType(char *name) {
     for (int i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
@@ -437,6 +439,9 @@ static TokenType resolveType(char *name) {
     return UNKNOWN;
 }
 
+/// @brief Returns the type of a tracked function.
+/// @param name Name of the function.
+/// @return The type in the function table.
 static TokenType resolveTypef(char *name) {
     for (int i = 0; i < b->funcAmt; i++) {
         if (strcmp(b->funcs[i].name, name) == 0) {
@@ -448,6 +453,9 @@ static TokenType resolveTypef(char *name) {
     return UNKNOWN;
 }
 
+/// @brief Parses a function call.
+/// @param isModuleFunction Defines if the function belongs in a module.
+/// @return The function's return type.
 static TokenType functionCall(bool isModuleFunction) {
     char *cv = current().value;
     char name[1024];
@@ -471,6 +479,8 @@ static TokenType functionCall(bool isModuleFunction) {
     return type;
 }
 
+/// @brief Consumes the end semicolon.
+/// @param ctx The statement type.
 static void consumeStatementTerminator(const char *ctx) {
     if (current().type != SEMICOLON) {
         char buffer[256];
@@ -483,7 +493,10 @@ static void consumeStatementTerminator(const char *ctx) {
     advance();
 }
 
-static TokenType parseAtom(void) { // small singular unit of expression (number, identifier, string, etc)
+/// @brief Parses an atom.
+/// @return The type of atom.
+/// @note Atom: small singular unit of expression (number, identifier, string, etc)
+static TokenType parseAtom(void) {
     logBuildParser("Parsing atom");
 
     switch (current().type) {
@@ -548,6 +561,8 @@ static TokenType parseAtom(void) { // small singular unit of expression (number,
     return type;
 }
 
+/// @brief Parses a full expression.
+/// @return The result type of the expression.
 static TokenType parseExpression(void) {
     TokenType ltype = parseAtom(); // result -> top
 
@@ -583,6 +598,8 @@ static TokenType parseExpression(void) {
     return ltype;
 }
 
+/// @brief Parses a full expression and ensures the type is what is expected.
+/// @param aim The expected type.
 static void parseExpressionTC(TokenType aim) {
     TokenType type = parseExpression();
     if (aim != type) {
@@ -592,6 +609,7 @@ static void parseExpressionTC(TokenType aim) {
     return;
 }
 
+/// @brief Parses a variable assignment.
 static void parseAssign(void) {
     logBuildParser("Parsing assignment");
 
@@ -608,6 +626,7 @@ static void parseAssign(void) {
     expectCurrent(SEMICOLON);
 }
 
+/// @brief Parses a variable declaration.
 static void parseVarDecl(void) {
     logBuildParser("Parsing variable declaration");
 
@@ -640,6 +659,8 @@ static void parseVarDecl(void) {
     expectCurrent(SEMICOLON);
 }
 
+/// @brief Parses a native function.
+/// @note eg. @log; @dump; @trace.
 static void parseNative(void) {
     logBuildParser("Parsing Native Call");
     advance(); //past @
@@ -663,7 +684,8 @@ emitNat:
     expectAndPass(SEMICOLON);    
 }
 
-
+/// @brief Parses the body of a function.
+/// @param retType The type of return expected.
 static void parseFuncBody(TokenType retType) {
     bool has_ret = false;
     while (current().type != CLOSEBRACE &&
@@ -697,6 +719,7 @@ static void parseFuncBody(TokenType retType) {
     }
 }
 
+/// @brief Parse a function definition. 
 static void parseFunction(void) {
     logBuildParser("[FN] Enter parseFunction()");
 
@@ -795,6 +818,7 @@ static void parseFunction(void) {
     return;
 }
 
+/// @brief Parses a module import.
 static void parseModule(void) {
     int nameMaxLen = 8;
     char *name = malloc(nameMaxLen * sizeof(char));
@@ -897,6 +921,7 @@ module:
     expectCurrent(SEMICOLON);
 }
 
+/// @brief Parse a statement. General entry point for all options.
 static void parseStatement(void) {
     logBuildParser("Parsing statement");
 
