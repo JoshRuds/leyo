@@ -9,6 +9,10 @@
 #ifndef TESTS_H
 #define TESTS_H
 
-int testLeyo(const char *);
+/// @brief Test leyo by running test programs.
+/// @param leyoBin The location of the leyo binary.
+/// @retval 0 Success.
+/// @retval 1 Failure.
+int testLeyo(const char *leyoBin);
 
 #endif
