@@ -13,7 +13,14 @@
 #include "../include/codes.h"
 #include "../include/codes.h"
 
+/// @brief 
+/// @param  
+/// @return 
 LogConfig readLogConfig(void);
+
+/// @brief Writes the default LYST
+/// @param  
+/// @return 
 bool writeDefaultLyst(void);
 bool runInitWizard(void);
 

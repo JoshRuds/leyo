@@ -15,6 +15,10 @@
 #include "../include/errors.h"
 #include "../include/codes.h"
 
+/// @brief Trims the given text.
+/// @param text The input to trim.
+/// @note The trimmed text is put into the @p text string.
+/// @note Similar to python's .strip().
 static void trimInput(char *text) {
     size_t len = strlen(text);
 
@@ -36,6 +40,11 @@ static void trimInput(char *text) {
     }
 }
 
+/// @brief Prompt the user for text with the given settings.
+/// @param label The prompt.
+/// @param fallback Default answer.
+/// @param out A buffer to store the input.
+/// @param outSize The size of the @p out buffer.
 static void promptText(const char *label, const char *fallback, char *out, size_t outSize) {
     char buffer[512];
 
@@ -55,6 +64,10 @@ static void promptText(const char *label, const char *fallback, char *out, size_
     snprintf(out, outSize, "%s", buffer);
 }
 
+/// @brief Prompt the user for a boolean with the given settings.
+/// @param label The prompt.
+/// @param fallback Default answer.
+/// @return Bool - true if user entered Y, false if user entered N.
 static bool promptBool(const char *label, bool fallback) {
     char buffer[32];
 
@@ -80,6 +93,11 @@ static bool promptBool(const char *label, bool fallback) {
     return fallback;
 }
 
+/// @brief Prompt the user for an int with the given settings.
+/// @param label The prompt.
+/// @param fallback Default answer.
+/// @param minValue The minimum value.
+/// @return The inputed integer.
 static int promptInt(const char *label, int fallback, int minValue) {
     char buffer[64];
 
@@ -104,6 +122,20 @@ static int promptInt(const char *label, int fallback, int minValue) {
     return (int)value;
 }
 
+/// @brief Writes the initial LYST configuration to the `.lyst` file in the current working directory.
+/// @param loggingEnabled Whether logging is enabled.
+/// @param loggingRotate Whether log rotation is enabled.
+/// @param loggingBuild Whether build logging is enabled.
+/// @param loggingRuntime Whether runtime logging is enabled.
+/// @param loggingController Whether controller logging is enabled.
+/// @param loggingErrors Whether error logging is enabled.
+/// @param retentionDays The number of days to retain log files.
+/// @param retentionAction The action to perform when logs exceed the retention period.
+/// @param logPath The path where log files are stored.
+/// @param archivePath The path where rotated log files are archived.
+/// @param buildIn The default input path for builds.
+/// @param buildOut The default output path for builds.
+/// @return `true` if the LYST file was successfully written; `false` if the file could not be opened.
 static bool writeInitLyst(
     bool loggingEnabled,
     bool loggingRotate,
@@ -220,6 +252,10 @@ bool writeDefaultLyst(void) {
     );
 }
 
+/// @brief Parses the retention action custom properties.
+/// @param value The text to parse.
+/// @retval 1 Retention action = archive.
+/// @retval 1 Retention action = delete.
 static int parseRetentionAction(const char *value) {
     if (!value) {
         return 1;
