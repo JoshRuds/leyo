@@ -13,15 +13,16 @@
 #include "../include/codes.h"
 #include "../include/codes.h"
 
-/// @brief 
-/// @param  
-/// @return 
+/// @brief Reads from the `.lyst` file and returns its contents as an object.
+/// @return A LogConfig object for the `.lyst` file.
 LogConfig readLogConfig(void);
 
-/// @brief Writes the default LYST
-/// @param  
-/// @return 
+/// @brief Writes the default LYST to the`.lyst` file.
+/// @return `true` if the LYST file was successfully written; `false` if the file could not be opened.
 bool writeDefaultLyst(void);
+
+/// @brief Opens the LYST wizard, providing a TUI for the LYST settings.
+/// @return `true` if the LYST file was successfully written; `false` if the file could not be opened.
 bool runInitWizard(void);
 
 #endif
