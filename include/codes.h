@@ -76,6 +76,7 @@ typedef enum {
 
     // Virtual Machine
     ERR_VM_UNDERFLOW,
+    ERR_VM_OVERFLOW,
     ERR_VM_INVALID_BINARY_OP,
     ERR_VM_CANNOT_DECODE_CONST_POOL,
     ERR_VM_CANNOT_ALLOCATE,

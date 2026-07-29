@@ -73,6 +73,7 @@ const Error errorTable[] = {
 
     // Virtual Machine
     {ERR_VM_UNDERFLOW,                   "V001", "Stack underflow", .fatal=true},
+    {ERR_VM_OVERFLOW,                    "V001", "Instruction pointer overflowed.", .fatal=true},
     {ERR_VM_INVALID_BINARY_OP,           "V002", "Invalid binary operation", .fatal=true},
     {ERR_VM_CANNOT_DECODE_CONST_POOL,    "V003", "Failed to decode constant pool", .fatal=true},
     {ERR_VM_CANNOT_ALLOCATE,             "V004", "Virtual machine out of memory", .fatal=true},
