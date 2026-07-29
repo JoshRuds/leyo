@@ -17,7 +17,7 @@
 
 /// @brief Trims a string.
 /// @param s The string to trim.
-/// @note Equivilant of python's .strip()
+/// @note Equivilant of python's .strip().
 /// @return The trimmed string.
 static char *lystTrim(char *s) {
     while (isspace((unsigned char)*s))

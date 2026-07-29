@@ -52,10 +52,16 @@ typedef struct {
     int deleted;
 } RetentionStats;
 
+/// @brief Determines if the char is '/' or '\'.
+/// @param c The char to check.
+/// @return Bool - true if char is seperator, else false.
 static bool isSeparator(char c) {
     return c == '/' || c == '\\';
 }
 
+/// @brief Checks if the given path is a file.
+/// @param path The path to check.
+/// @return Bool - true if path exists, else false.
 static bool pathExists(const char *path) {
     struct stat st;
     return stat(path, &st) == 0;

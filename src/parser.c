@@ -495,7 +495,7 @@ static void consumeStatementTerminator(const char *ctx) {
 
 /// @brief Parses an atom.
 /// @return The type of atom.
-/// @note Atom: small singular unit of expression (number, identifier, string, etc)
+/// @note Atom: small singular unit of expression (number, identifier, string, etc).
 static TokenType parseAtom(void) {
     logBuildParser("Parsing atom");
 

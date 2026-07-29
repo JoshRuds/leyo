@@ -28,6 +28,12 @@ typedef struct {
     char archivePath[LOG_PATH_MAX];
 } LogConfig;
 
+/// @brief Outputs an error to the log file.
+/// @param msg The error message.
+/// @param line Line of the error.
+/// @param collumn Collumn of the error.
+void _logError(const char *msg, int line, int collumn);
+
 /// @brief Throw an error and save to memory. Ensures fatal errors are handled.
 /// @param wf How the error will be printed. Specific to the caller.
 /// @param code The error code to throw.

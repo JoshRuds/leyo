@@ -24,7 +24,7 @@ static char tmpFolderName[1024];
 
 /// @brief Run the given command.
 /// @param cmd The command to run.
-/// @return The result returned by @c system(), or the command's exit status on
+/// @return The result returned by @c system(), or the command's exit status.
 /// non-Windows platforms; returns 1 if the command did not exit normally.
 static int runCommand(const char *cmd) {
 #ifdef _WIN32

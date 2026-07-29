@@ -33,6 +33,10 @@ static const HelpEntry helpEntries[] = {
 
 static const size_t helpEntryCount = sizeof(helpEntries) / sizeof(helpEntries[0]);
 
+/// @brief Checks if a string is inside another string.
+/// @param haystack The string to check.
+/// @param needle The string to find.
+/// @return Bool - true if it is inside @p haystack string, else false.
 static bool containsIgnoreCase(const char *haystack, const char *needle) {
     if (!needle || !*needle) {
         return true;
