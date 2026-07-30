@@ -273,9 +273,58 @@ static void serializeValue(Value *v) {
     }
 }
 
+/// @brief Checks if const was previously set.
+/// @param v The value.
+/// @param loc Set to the location if @p v is a duplicate.
+/// @return Bool - true if const is duplicate, else false.
+static bool checkConstDuplicate(Value v, uint64_t *loc) {
+    for (uint64_t i = 0; i < b->constAmt; i++) {
+        Value c = b->consts[i];
+
+        if (v.flag != c.flag)
+            continue;
+
+        switch (v.flag) {
+            case VAL_CHAR:
+                if (v.as.c == c.as.c) {
+                    *loc = i;
+                    return true;
+                }
+                break;
+
+            case VAL_FLOAT:
+                if (v.as.f == c.as.f) {
+                    *loc = i;
+                    return true;
+                }
+                break;
+
+            case VAL_INT:
+                if (v.as.i == c.as.i) {
+                    *loc = i;
+                    return true;
+                }
+                break;
+
+            case VAL_STR:
+                if (strcmp(v.as.s, c.as.s) == 0) {
+                    *loc = i;
+                    return true;
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    *loc = 0;
+    return false;
+}
+
 /// @brief Emits a constant to the const pool and returns its slot.
 /// @return The slot at which the const is set at.
-static uint16_t emitConst(void) {
+static uint64_t emitConst(void) {
     Value v = {0};
     switch (current().type) {
         case CHR:
@@ -301,6 +350,12 @@ static uint16_t emitConst(void) {
         default:
             break;
     }
+
+    uint64_t loc;
+    if (checkConstDuplicate(v, &loc)) {
+        return loc;
+    }
+
     serializeValue(&v);
     b->consts[b->constAmt++] = v;
     return b->constAmt-1;
@@ -1040,7 +1095,7 @@ ByteCodeResult parse(TokenStream *ts, char *currentFileName) {
     
     size_t amount = 0;
     Value c;
-    int i = 0;
+    uint64_t i = 0;
     while (i < b->constAmt) {
         c = b->consts[i++];
         switch (c.flag) {

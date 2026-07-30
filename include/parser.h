@@ -65,7 +65,7 @@ typedef struct {
     int globalCount;
 
     Value *consts;
-    int constAmt;
+    uint64_t constAmt;
 
     Func *funcs;
     int funcAmt;
