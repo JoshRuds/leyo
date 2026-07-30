@@ -39,11 +39,13 @@ const char *lystGet(const char *path);
 
 /// @brief Gets the boolean value from the given key.
 /// @param path The key to search for.
+/// @param fallback Result if no bool provided.
 /// @return The boolean value.
 bool lystGetBool(const char *path, bool fallback);
 
 /// @brief Gets the integer from the given key.
 /// @param path The key to search for.
+/// @param fallback Result if no int provided.
 /// @return The integer value.
 int lystGetInt(const char *path, int fallback);
 
