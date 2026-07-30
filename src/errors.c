@@ -210,6 +210,11 @@ static const char *getBaseName(const char *path) {
     return slash > backslash ? slash + 1 : backslash + 1;
 }
 
+/// @brief Ensures safe target to archive to with no overwrites.
+/// @param archiveDir The archive directory.
+/// @param sourceName The name of the source file.
+/// @param out Buffer to store the safe file path.
+/// @param outSize Size of the @p out buffer.
 static void buildArchiveTarget(const char *archiveDir, const char *sourceName, char *out, size_t outSize) {
     copyPath(out, outSize, archiveDir);
     appendPath(out, outSize, sourceName);
@@ -241,6 +246,10 @@ static void buildArchiveTarget(const char *archiveDir, const char *sourceName, c
     }
 }
 
+/// @brief Takes action on an old log.
+/// @param fullPath The full path of the log to take action on.
+/// @param archiveDir The directory to archive to.
+/// @param stats The retention stats to update.
 static void moveOrDeleteOldLog(const char *fullPath, const char *archiveDir, RetentionStats *stats) {
     if (logConfig.retentionAction == 0) {
         if (remove(fullPath) == 0) {
@@ -258,6 +267,11 @@ static void moveOrDeleteOldLog(const char *fullPath, const char *archiveDir, Ret
     }
 }
 
+/// @brief Checks path exists and takes action if needed.
+/// @param fullPath The full path of the candidate.
+/// @param archiveDir The directory to archive to.
+/// @param now The current time.
+/// @param stats The stats to update.
 static void sweepCandidate(const char *fullPath, const char *archiveDir, time_t now, RetentionStats *stats) {
     struct stat st;
 
@@ -279,6 +293,11 @@ static void sweepCandidate(const char *fullPath, const char *archiveDir, time_t 
     moveOrDeleteOldLog(fullPath, archiveDir, stats);
 }
 
+/// @brief Finds all logs in the given directory. Runs @c sweepCandidate() on them.
+/// @param logDir The log directory.
+/// @param archiveDir The archive directory.
+/// @param activeBase Current log file (usally `latest.lylog`).
+/// @param stats The stats to update.
 static void sweepLogsInDirectory(const char *logDir, const char *archiveDir, const char *activeBase, RetentionStats *stats) {
     time_t now = time(NULL);
 
