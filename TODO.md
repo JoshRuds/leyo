@@ -1,203 +1,137 @@
 # Leyo Roadmap
 
-MAINTAINERS: UPDATE AFTER COMPLETION
+Leyo is a simple alternative to systems languages like C and Rust that should be
+safe and easy. 
 
-## Core Language
+## Requirements
 
-- [x] Variables
-- [x] Expressions
-- [x] Type system
-- [x] Functions
-- [x] Strings
+Leyo must have addons for native assemblies. It should be simple and intuitive to
+be used in classrooms and used to teach easily.
 
-### Execution
-- [ ] Stack VM
-- [ ] Call frames
-- [ ] Native functions
-- [ ] Exit codes
+## Structure
 
-### Scopes & Lifetime
-- [ ] Scope handling
-- [ ] Local variables
-- [ ] Global variables
-- [ ] Constant variables
-- [ ] Shadowing rules
+Leyo is designed to run anywhere and be good at it. A Leyo program should be easy to run on a user's computer, easy to share as a `.lybc` file, and simple to deploy to specialised platforms such as microcontrollers.
 
-### Control Flow
-- [ ] `if`
-- [ ] `else`
-- [ ] `else if`
-- [ ] `while`
-- [ ] `repeat`
-- [ ] `for`
-- [ ] `switch`
-- [ ] `match` (optional)
-- [ ] `break`
-- [ ] `continue`
-- [ ] `return`
+The core Leyo compiler produces **Leyo Bytecode (`.lybc`)**, providing a common format for distributing and executing Leyo programs.
 
-### Types
-- [ ] Arrays
-- [ ] Tuples
-- [ ] Structs
-- [ ] Enums
-- [ ] Unions (optional)
-- [ ] Type aliases
-- [ ] Generics (optional)
-- [ ] Nullable types
-- [ ] Type inference
-- [ ] Casting
+A graph demonstates the general idea:
 
-### Functions
-- [ ] Default parameters
-- [ ] Variadic parameters
-- [ ] Function overloading (optional)
-- [ ] Anonymous functions
-- [ ] Closures
+                              Leyo Source
+                                   │
+                                   ▼
+                                 Lexer
+                                   │
+                                   │ Token Stream
+                                   ▼
+                                 Parser
+                                   │
+                                   │ Bytecode
+                                   ▼
+                         ┌───────────────────┐
+                         │                   │
+                         ▼                   ▼
+                  Device-Specific VM   Native Backend
+                         │                   │
+                         │                   │
+                         ▼                   ▼
+                       Run on        Native Executable
+                      simulated              │
+                      hardware               ▼
+                                  ┌────────────────────┐
+                                  │                    │
+                                  ▼                    ▼
+                             Desktop OS        Microcontroller
+                            e.g. Windows       e.g. micro:bit
+                                                     │
+                                                     ▼
+                                          Microcontroller Addon
+                                                     │
+                                    ┌────────────────┼────────────────┐
+                                    │                │                │
+                                    ▼                ▼                ▼
+                              Native APIs         Assembly     Flashing Tools
+                                    │            Transpiler           │
+                                    │                │                │
+                                    └────────────────┼────────────────┘
+                                                     ▼
+                                               Microcontroller
+                                                     │
+                                                     ▼
+                                                    Run
 
----
+### Universal Bytecode
 
-## Compiler
+The `.lybc` format is the standard way to share compiled Leyo programs. A user should be able to distribute a Leyo application as a single `.lybc` file and run it easily using the Leyo runtime.
 
-### Lexer
-- [ ] Unicode identifiers
-- [ ] Escape sequences
-- [ ] Numeric literals
-- [x] Comments
+This provides a simple distinction between **writing Leyo programs** and **building Leyo itself**. Users should not need a full development environment simply to run a Leyo program.
 
-### Parser
-- [ ] Error recovery
-- [ ] Better diagnostics
-- [ ] AST validation
+The same `.lybc` program can also be used as the input for platform-specific SDKs. Depending on the target, it could be packaged into a Windows `.exe`, a Linux executable, a macOS application, or firmware such as a micro:bit `.hex` file.
 
-### Semantic Analysis
-- [x] Undefined variable detection
-- [ ] Unused variable warnings
-- [ ] Type checking
-- [ ] Constant folding
-- [ ] Dead code detection
+### Native SDKs
 
-### Bytecode Compiler
-- [ ] Function compilation
-- [ ] Jump patching
-- [ ] Constant pool improvements
-- [ ] Debug information
+For users who want to target a specific platform, Leyo provides a simple way to install the required native SDK.
 
----
+A native SDK contains the tools required to convert Leyo bytecode into a format suitable for its target platform. This may include a native compiler, assembly transpiler, linker, platform libraries, and flashing tools.
 
-## Virtual Machine
+For example:
 
-- [ ] Memory management
-- [ ] Heap allocator
-- [ ] Garbage collector
-- [ ] String interning
-- [ ] Stack overflow protection
-- [ ] Runtime type checking
-- [ ] Exception handling
-- [ ] Native API
+```text
+program.lybc
+      │
+      ▼
+Micro:bit SDK
+      │
+      ├── Native Backend
+      ├── Assembly Transpiler
+      ├── Linker
+      └── Flashing Tool
+      │
+      ▼
+program.hex
+      │
+      ▼
+   Micro:bit
+```
 
-### Bytecode Optimizations
-- [ ] Peephole optimizer
-- [ ] Constant propagation
-- [ ] Dead code elimination
-- [ ] Instruction combining
-- [ ] Inline caching (future)
+This means that a user can start with the standard Leyo installation and only install additional SDKs when they need to target a specific platform.
 
----
+### Community-Driven Addons
 
-## Modules
+Leyo's platform ecosystem is designed to be community-driven. Anyone should be able to create an addon for a new operating system, processor architecture, microcontroller, or other target without modifying the Leyo compiler itself.
 
-- [x] Modules
-- [x] Imports
-- [ ] Public/private visibility
-- [ ] Circular import detection
+Addons should follow a simple and consistent interface, allowing them to integrate with the Leyo executable and its build system. An addon can provide the tools required to take `.lybc` files and produce the appropriate output for its target platform.
 
----
+For example, an addon could define:
 
-## Standard Library
+* The target architecture and platform.
+* The native compiler or transpiler to use.
+* The format of the final output.
+* Required platform libraries.
+* How the output is packaged.
+* How programs are deployed or flashed to hardware.
 
-- [ ] `std.io`
-- [ ] `std.math`
-- [ ] `std.string`
-- [ ] `std.array`
-- [ ] `std.time`
-- [ ] `std.random`
-- [ ] `std.fs`
-- [ ] `std.path`
-- [ ] `std.process`
-- [ ] `std.net`
-- [ ] `std.json`
-- [ ] `std.collections`
+The goal is that creating an addon should be straightforward enough for the community to support new platforms as they appear.
 
----
+### Package Management
 
-## Tooling
+Leyo may provide an in-built package manager for discovering, installing, updating, and managing addons and SDKs.
 
-- [ ] Formatter
-- [ ] Linter
-- [ ] REPL
-- [ ] Documentation generator
-- [ ] Language Server (LSP)
-- [ ] Syntax highlighting
-- [ ] Debugger
-- [x] Bytecode disassembler
+This could allow a user to install a new target with a simple command, for example:
 
----
+```bash
+leyo package install microbit
+```
 
-## CLI
+After installation, the new target would become available through the standard Leyo executable.
 
-- [ ] `leyo run`
-- [ ] `leyo build`
-- [ ] `leyo compile`
-- [ ] `leyo format`
-- [ ] `leyo lint`
-- [ ] `leyo repl`
-- [ ] `leyo test`
-- [ ] `leyo doc`
-- [ ] `leyo version`
+The exact implementation of the package system may evolve, but the underlying principle remains the same: **Leyo should make targeting a new platform as simple as installing the required addon.**
 
----
+### The Goal
 
-## Testing
+Leyo aims to provide a single, consistent development experience across platforms:
 
-- [ ] Unit tests
-- [ ] VM tests
-- [ ] Parser tests
-- [ ] Compiler tests
-- [ ] Standard library tests
-- [ ] Regression tests
-- [ ] Fuzz testing
+**Write once. Compile once. Run anywhere.**
 
----
+Whether the final result is a `.lybc` file running in the Leyo VM, a standalone Windows `.exe`, or firmware flashed onto a microcontroller, the user should interact with the same core Leyo language and toolchain.
 
-## Performance
-
-- [ ] Faster lexer
-- [ ] Faster parser
-- [ ] Faster VM dispatch
-- [ ] Memory optimizations
-- [ ] Reduced allocations
-- [ ] Benchmark suite
-
----
-
-## Ecosystem
-
-- [ ] Package manager
-- [ ] Package registry
-- [ ] Build system
-- [ ] Dependency resolution
-- [ ] Version locking
-
----
-
-## Release
-
-- [ ] Windows support
-- [ ] Linux support
-- [ ] macOS support
-- [ ] CI/CD
-- [ ] Documentation website
-- [ ] Examples
-- [ ] Tutorial
-- [ ] v1.0 Release
+The complexity of each target should be handled by its SDK or addon, allowing Leyo itself to remain simple, portable, and accessible while still being capable of targeting almost any platform.
