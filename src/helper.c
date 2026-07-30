@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file helper.c
+/// @brief The help screen.
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -16,20 +19,24 @@ typedef struct {
 } HelpEntry;
 
 static const HelpEntry helpEntries[] = {
-    {"help", "help [query]", "Show all CLI commands or filter by a search term"},
-    {"init", "init [--defaults]", "Create or rewrite .lyst configuration"},
-    {"build", "build <source> [output]", "Compile Leyo source into .lybc output"},
-    {"run", "run <file.lybc> [-V, --verbose]", "Execute compiled bytecode in the VM"},
-    {"repl", "repl", "Start the interactive evaluator"},
-    {"test", "test", "Run the built-in smoke test"},
-    {"disassemble", "disassemble <file.lybc> [--hex] [--head]", "Inspect bytecode in readable or hex form"},
-    {"dis", "dis <file.lybc> [--hex] [--head]", "Short alias for disassemble"},
-    {"do", "do", "Build using paths from .lyst"},
-    {"github", "github", "Open Leyo github"}
+    {"help",           "help [query]",                                  "Show all CLI commands or filter by a search term"},
+    {"init",           "init [--defaults]",                             "Create or rewrite .lyst configuration"},
+    {"build",          "build <source> [-o output] [-d, --dump]",       "Compile Leyo source into .lybc output"},
+    {"run",            "run <file.lybc> [-V, --verbose]",               "Execute compiled bytecode in the VM"},
+    {"repl",           "repl",                                          "Start the interactive evaluator"},
+    {"test",           "test",                                          "Run the built-in smoke test"},
+    {"disassemble",    "disassemble <file.lybc> [--hex] [--head]",      "Inspect bytecode in readable or hex form"},
+    {"dis",            "dis <file.lybc> [--hex] [--head]",              "Short alias for disassemble"},
+    {"do",             "do",                                            "Build using paths from .lyst"},
+    {"github",         "github",                                        "Open Leyo github"}
 };
 
 static const size_t helpEntryCount = sizeof(helpEntries) / sizeof(helpEntries[0]);
 
+/// @brief Checks if a string is inside another string.
+/// @param haystack The string to check.
+/// @param needle The string to find.
+/// @return Bool - true if it is inside @p haystack string, else false.
 static bool containsIgnoreCase(const char *haystack, const char *needle) {
     if (!needle || !*needle) {
         return true;
@@ -63,6 +70,10 @@ static bool containsIgnoreCase(const char *haystack, const char *needle) {
     return false;
 }
 
+/// @brief Checks if given entry matches the query.
+/// @param entry The entry object to search.
+/// @param query The query to search for.
+/// @return Bool - true if @p query is anywhere in the @p entry object, else false.
 static bool helpEntryMatches(const HelpEntry *entry, const char *query) {
     if (!query || !*query) {
         return true;
@@ -99,7 +110,7 @@ void printHelp(const char *query) {
     puts("  --diagnostics, -D    Print build and runtime diagnostics");
     puts("");
     puts("Notes:");
-    puts("  -s and --speed can be used anywhere and disables logging for performance");
+    puts("  - flags -s and --speed can be used anywhere and disables logging for performance");
     puts("  - help uses the first positional argument as a search term");
     puts("  - init --defaults writes the default .lyst without prompting");
 }

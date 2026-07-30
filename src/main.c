@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file main.c
+/// @brief The main entry point for leyo.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +35,12 @@
 #define GIT_DIRTY "unknown"
 #endif
 
+/// @brief The main entry point of the Leyo compiler.
+/// @param argc The number of command-line arguments.
+/// @param argv The command-line arguments.
+/// @retval -1 A controller error occurred.
+/// @retval 0 The program completed successfully.
+/// @retval 1 A sub-program returned an error.
 int main(int argc, char *argv[]) {
     // set atexits's
     atexit(callAllErr);
@@ -172,7 +181,8 @@ int main(int argc, char *argv[]) {
 
         char *in = (char*)lystGet("build/in");
         char *out = (char*)lystGet("build/out");
-        return build(in, out, false, false); // TODO fix up and add lyst setting
+        bool dump = isFlag(&parser, "-d") || isFlag(&parser, "--dump"); // TODO add lyst setting for default
+        return build(in, out, false, dump);
 
     } else if (isCommand(&parser, "github")) {
         logController("Opening Github");

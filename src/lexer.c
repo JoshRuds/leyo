@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file lexer.c
+/// @brief The lexer.
+
 #include "../include/type.h"
 #include "../include/errors.h"
 #include "../include/codes.h"
@@ -47,6 +50,7 @@ typedef enum {
     M_LINE_COMMENT
 } LexerMode;
 
+/// @brief The lexer object. Describes lexer related items.
 typedef struct {
     int i;
     int line;
@@ -74,24 +78,41 @@ Token token(const char *value, TokenType type) {
     return _token(value, type, l->line, l->scol);
 }
 
+/// @brief Pushes the given token to the lexRes object.
+/// @param token The token to push.
 static void push(Token token) {
     logBuildLexer("Token pushed to stream");
+    if (lexRes.count >= lexRes.capacity-1) {
+        lexRes.capacity *= 2;
+        lexRes.stream = realloc(lexRes.stream, lexRes.capacity);
+        if (!lexRes.stream) {
+            lraise(WF_BUILD, ERR_LEX_OUT_OF_MEMORY, l->line, l->collumn, l->filename);
+            return;
+        }
+    }
     l->scol = l->collumn;
     lexRes.stream[lexRes.count++] = token;
 }
 
+/// @brief Gets the next character.
+/// @return The next char.
 static char peek(void) {
     return src[l->i+1];
 }
 
+/// @brief Gets the current character.
+/// @return The current char.
 static char current(void) {
     return src[l->i];
 }
 
+/// @brief Gets the previous lexer character.
+/// @return The previous char.
 static char previous(void) {
     return src[l->i-1];
 }
 
+/// @brief Moves on the lexer by one char.
 static void advance(void) {
     l->i++;
     if (current() == '\n') {
@@ -103,6 +124,7 @@ static void advance(void) {
     }
 }
 
+/// @brief Default lex mode - handles all.
 static void handleNormal(void) {
     char c = current();
 
@@ -194,6 +216,7 @@ static void handleNormal(void) {
     advance();
 }
 
+/// @brief Lex mode to handle strings. 
 static void handleString(void) {
     logBuildLexer("Entering STRING mode");
 
@@ -244,6 +267,7 @@ static void handleString(void) {
     free(buff);
 }
 
+/// @brief Lex mode to handle identifiers. 
 static void handleIdentifier(void) {
     logBuildLexer("Entering IDENTIFIER mode");
 
@@ -288,6 +312,7 @@ static void handleIdentifier(void) {
     free(buff);
 }
 
+/// @brief Lex mode to handle numbers. 
 static void handleNumber(void) {
     logBuildLexer("Entering NUMBER mode");
 
@@ -344,6 +369,7 @@ static void handleNumber(void) {
     free(buff);
 }
 
+/// @brief Handles one line comments. 
 static void handleLineComment(void) {
     logBuildLexer("Entering COMMENT mode");
 
@@ -358,6 +384,7 @@ static void handleLineComment(void) {
     }
 }
 
+/// @brief Handles multiline comments. 
 static void handleComment(void) {
     logBuildLexer("Entering COMMENT mode");
 
@@ -376,9 +403,9 @@ static void handleComment(void) {
 TokenStream tokenise(char* _src) {
     src = _src;
 
-    lexRes.stream = malloc(sizeof(Token) * 4096);
     lexRes.count = 0;
     lexRes.capacity = 4096;
+    lexRes.stream = malloc(sizeof(Token) * lexRes.capacity);
 
     l->i = 0;
     l->collumn = 1;

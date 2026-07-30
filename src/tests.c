@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file tests.c
+/// @brief The test suite.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "../include/errors.h"
@@ -19,21 +22,24 @@
 
 static char tmpFolderName[1024];
 
+/// @brief Run the given command.
+/// @param cmd The command to run.
+/// @return The result returned by @c system(), or the command's exit status.
+/// non-Windows platforms; returns 1 if the command did not exit normally.
+static int runCommand(const char *cmd) {
 #ifdef _WIN32
-static int runCommand(const char *cmd) {
     return system(cmd);
-}
 #else
-static int runCommand(const char *cmd) {
     int rc = system(cmd);
     if (WIFEXITED(rc))
         return WEXITSTATUS(rc);
     return 1;
-}
 #endif
+}
 
 static void writeTest(const char *str);
 
+/// @brief Create a tempory folder. OS seperate.
 static int createTmpFolder(void) {
     writeTest("Creating temporary workspace");
     #ifdef _WIN32
@@ -76,6 +82,7 @@ static int createTmpFolder(void) {
     #endif
 }
 
+/// @brief Destroy the tempory folder. OS seperate.
 static void destroyTmpFolder(void) {
     logController("Destroying temporary workspace");
     #ifdef _WIN32
@@ -108,6 +115,8 @@ static void destroyTmpFolder(void) {
     #endif
 }
 
+/// @brief Write a message with the test tag ("[TEST]") to the terminal and logs.
+/// @param str The message to tag and output.
 static void writeTest(const char *str) {
     printf("[TEST] %s\n", str);
     logController(str);

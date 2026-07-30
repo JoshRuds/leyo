@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file lyst.c
+/// @brief The LYST handler.
+
 #include "../include/lyst.h"
 #include "../include/errors.h"
 #include "../include/codes.h"
@@ -12,6 +15,10 @@
 #include <string.h>
 #include <ctype.h>
 
+/// @brief Trims a string.
+/// @param s The string to trim.
+/// @note Equivilant of python's .strip().
+/// @return The trimmed string.
 static char *lystTrim(char *s) {
     while (isspace((unsigned char)*s))
         s++;
@@ -165,6 +172,10 @@ const char *lystGet(const char *path) {
     return NULL;
 }
 
+/// @brief Checks if the two strings are equal when case is ignored.
+/// @param a String A.
+/// @param b String B.
+/// @return Bool - true if they are equal, else false.
 static bool lystEqualsIgnoreCase(const char *a, const char *b) {
     while (*a && *b) {
         if (tolower((unsigned char)*a) != tolower((unsigned char)*b)) {

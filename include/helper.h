@@ -3,9 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file helper.h
+/// @brief Header for the help display.
+
 #ifndef HELPER_H
 #define HELPER_H
 
+/// @brief Prints helpsheet.
+/// @param query Optional argument to specify what to search for.
 void printHelp(const char *query);
 
 #endif

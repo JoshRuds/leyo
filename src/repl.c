@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file repl.c
+/// @brief The REPL.
+
 #include "../include/lexer.h"
 #include "../include/parser.h"
 #include "../include/errors.h"

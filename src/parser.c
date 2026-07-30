@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file parser.c
+/// @brief The parser.
+
 #include "../include/type.h"
 #include "../include/parser.h"
 #include "../include/lexer.h"
@@ -37,9 +40,9 @@ typedef enum {
 
 
 // HOISTS
-
 static void parseStatement(void);
 
+/// @brief Checks to ensure the byte buffer is large enough, else it re-allocates double memory for it.
 static void checkByteBuff(void) {
     logBuildParser("Checking ByteBuff Size");
     if (b->byteIndex >= b->byteCap - 1) {
@@ -49,42 +52,53 @@ static void checkByteBuff(void) {
     }
 }
 
+/// @brief Get the current token.
+/// @return The token at the current parser position.
 static Token current(void) {
     return b->tokens[b->pos];
 }
 
+/// @brief Get the previous token.
+/// @return The token at the previous parser position.
 static Token previous(void) {
-    if (b->count-1==b->pos) {
+    if (b->count-1<=b->pos) {
         logBuildParser("Too far - previoused into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_STARTOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
     return b->tokens[b->pos-1];
 }
 
+/// @brief Get the next token.
+/// @return The token at the next parser position.
 static Token peek(void) {
-    if (b->count-1==b->pos) {
+    if (b->count+1>=b->pos) {
         logBuildParser("Too far - peeked into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
     return b->tokens[b->pos+1];
 }
 
+/// @brief Get the token 2 ahead.
+/// @return The token at the parser position + 2.
 static Token peek2(void) {
-    if (b->count-2==b->pos) {
+    if (b->count+2>=b->pos) {
         logBuildParser("Too far - peeked into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
     return b->tokens[b->pos+2];
 }
 
+/// @brief Move the parser position on by one.
 static void advance(void) {
-    if (b->count+1==b->pos) {
+    if (b->count+1>=b->pos) {
         logBuildParser("Too far - advanced into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
     b->pos++;
 }
 
+/// @brief Expect the current value to be the given type, and move past it.
+/// @param type The type to expect.
 static void expectCurrent(TokenType type) {
     if (type != current().type) {
         logBuildParser("Expect failed (current mismatch)");
@@ -97,6 +111,8 @@ static void expectCurrent(TokenType type) {
     advance();
 }
 
+/// @brief Expect the next value to be the given type, and move onto it.
+/// @param type The type to expect.
 static void expect(TokenType type) {
     if (type != peek().type) {
         logBuildParser("Expect failed (peek mismatch)");
@@ -109,6 +125,8 @@ static void expect(TokenType type) {
     advance();
 }
 
+/// @brief Expect the next value to be the given type, and skip it. 
+/// @param type The type to expect.
 static void expectAndPass(TokenType type) {
     advance();
     if (type != current().type) {
@@ -122,6 +140,8 @@ static void expectAndPass(TokenType type) {
     advance();
 }
 
+/// @brief Appends the one-byte value to the byte-buffer.
+/// @param value The byte to append.
 static void emit(uint8_t value) {
     checkByteBuff();
     if (b->byteIndex >= b->byteCap) {
@@ -132,11 +152,15 @@ static void emit(uint8_t value) {
     b->bytebuff[b->byteIndex++] = value;
 }
 
+/// @brief Appends the two-byte value to the byte-buffer.
+/// @param value The two bytes to append.
 static void emit16(uint16_t value) {
     emit((uint8_t)(value & 0xFF));
     emit((uint8_t)((value >> 8) & 0xFF));
 }
 
+/// @brief Appends the four-byte value to the byte-buffer.
+/// @param value The four bytes to append.
 static void emit32(uint32_t value) {
     emit((uint8_t)(value & 0xFF));
     emit((uint8_t)((value >> 8) & 0xFF));
@@ -144,12 +168,17 @@ static void emit32(uint32_t value) {
     emit((uint8_t)((value >> 24) & 0xFF));
 }
 
+/// @brief Emits a empty four-byte slot.
+/// @return The location.
 static uint32_t reserve32(void) {
     uint32_t pos = b->byteIndex;
     emit32(0);
     return pos;
 }
 
+/// @brief Emits four-bytes at the given slot.
+/// @param loc Where to emit.
+/// @param value The four-byte value to emit.
 static void patch32(uint32_t loc, uint32_t value) {
     if (loc + 3 >= b->byteIndex) {
         logBuildParser("Invalid patch location");
@@ -163,10 +192,15 @@ static void patch32(uint32_t loc, uint32_t value) {
     b->bytebuff[loc+3] = (uint8_t)((value >> 24) & 0xFF);
 }
 
+/// @brief Emits a byte to the const buffer.
+/// @param v The byte to emit.
 static void constEmit(uint8_t v) {
     constBuf.data[constBuf.length++] = v;
 }
 
+/// @brief Adds a name to the module list.
+/// @param name The name of the module.
+/// @note No side effects - just adds a string to a register.
 static void addModule(const char *name) {
     if (b->moduleAmt == b->moduleCap) {
         b->moduleCap *= 2;
@@ -179,6 +213,9 @@ static void addModule(const char *name) {
     b->modulesLoaded[b->moduleAmt++] = strdup(name);
 }
 
+/// @brief Checks if a name is in the module list.
+/// @param name The name to check.
+/// @return Bool - true if it is in the register, else false. 
 static bool isModuleLoaded(const char *name) {
     for (int i = 0; i < b->moduleAmt; i++) {
         if (strcmp(b->modulesLoaded[i], name) == 0) {
@@ -188,6 +225,8 @@ static bool isModuleLoaded(const char *name) {
     return false;
 }
 
+/// @brief Checks current value against known types.
+/// @return The type of the current value.
 static TokenType getTypeVar(void) {
     if (strcmp(current().value, "int") == 0) {return NUMBER;}
     if (strcmp(current().value, "str") == 0) {return STRING;}
@@ -197,6 +236,8 @@ static TokenType getTypeVar(void) {
     return UNKNOWN;
 } 
 
+/// @brief Append current value to the result constant list.
+/// @param v The value to append.
 static void serializeValue(Value *v) {
     constEmit((uint8_t)v->flag);
 
@@ -232,6 +273,10 @@ static void serializeValue(Value *v) {
     }
 }
 
+/// @brief Checks if const was previously set.
+/// @param v The value.
+/// @param loc Set to the location if @p v is a duplicate.
+/// @return Bool - true if const is duplicate, else false.
 static bool checkConstDuplicate(Value v, uint64_t *loc) {
     for (uint64_t i = 0; i < b->constAmt; i++) {
         Value c = b->consts[i];
@@ -277,6 +322,8 @@ static bool checkConstDuplicate(Value v, uint64_t *loc) {
     return false;
 }
 
+/// @brief Emits a constant to the const pool and returns its slot.
+/// @return The slot at which the const is set at.
 static uint64_t emitConst(void) {
     Value v = {0};
     switch (current().type) {
@@ -314,6 +361,9 @@ static uint64_t emitConst(void) {
     return b->constAmt-1;
 }
 
+/// @brief Checks if the given string is a known keyword.
+/// @param tc The string to check.
+/// @return Bool - true if is keyword, else false.
 static bool isKeyword(char *tc) {
     char *keywords[] = {
         "int", "chr", "str", "flt", "arr",
@@ -332,22 +382,41 @@ static bool isKeyword(char *tc) {
     return false;
 }
 
-static int define(char *name, TokenType type) {
-    isKeyword(name);
+/// @brief Checks if name is valid against other defined and keywords.
+/// @param name Name to check.
+/// @param noRaise Defines if the helper should raise errors if not valid.
+/// @return Bool - true if not valid, else false.
+static bool isNameNotValid(const char *name, bool noRaise) {
+    bool res = isKeyword(name);
+    if (res) 
+        return res;
+
     for (int i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
             lraise(WF_BUILD, ERR_PARSER_VAR_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
-            return b->globals[i].slot;
+            return true;
+            // return b->globals[i].slot;
         }
     }
+
     for (int i = 0; i < b->funcAmt; i++) {
         if (strcmp(b->funcs[i].name, name) == 0) {
             lraise(WF_BUILD, ERR_PARSER_FUNC_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
-            return b->funcs[i].address;
+            return true;
+            // return b->funcs[i].address;
         }
     }
-    
 
+    return false;
+}
+
+/// @brief Defines a variable to be tracked.
+/// @param name Name of the variable.
+/// @param type Type of the variable.
+/// @return The slot in the variable table.
+static int define(const char *name, TokenType type) {
+    if (isNameNotValid(name, false))
+        return -1;
 
     int slot = b->globalCount;
 
@@ -359,20 +428,13 @@ static int define(char *name, TokenType type) {
     return slot;
 }
 
-static uint32_t definef(char *name, TokenType ret) {
-    isKeyword(name);
-    for (int i = 0; i < b->globalCount; i++) {
-        if (strcmp(b->globals[i].name, name) == 0) {
-            lraise(WF_BUILD, ERR_PARSER_VAR_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
-            return b->globals[i].slot;
-        }
-    }
-    for (int i = 0; i < b->funcAmt; i++) {
-        if (strcmp(b->funcs[i].name, name) == 0) {
-            lraise(WF_BUILD, ERR_PARSER_FUNC_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
-            return b->funcs[i].address;
-        }
-    }
+/// @brief Defines a function to be tracked.
+/// @param name Name of the function.
+/// @param type Type of the function.
+/// @return The slot in the function table.
+static uint32_t definef(const char *name, TokenType ret) {
+    if (isNameNotValid(name, false))
+        return -1;
 
     b->funcs[b->funcAmt].name = strdup(name);
     b->funcs[b->funcAmt].address = b->byteIndex;
@@ -382,9 +444,12 @@ static uint32_t definef(char *name, TokenType ret) {
     logBuildParser("Registered Func With Name: ");
     logBuildParser(name);
 
-    return b->byteIndex;
+    return b->funcAmt-1;
 }
 
+/// @brief Returns the slot of a tracked variable.
+/// @param name Name of the variable.
+/// @return The slot in the varibale table.
 static int resolve(char *name) {
     for (int i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
@@ -396,6 +461,9 @@ static int resolve(char *name) {
     return 0;
 }
 
+/// @brief Returns the slot of a tracked function.
+/// @param name Name of the function.
+/// @return The slot in the function table.
 static uint32_t resolvef(char *name) {
     for (int i = 0; i < b->funcAmt; i++) {
         if (strcmp(b->funcs[i].name, name) == 0) {
@@ -412,6 +480,9 @@ static uint32_t resolvef(char *name) {
     return -1;
 }
 
+/// @brief Returns the type of a tracked variable.
+/// @param name Name of the variable.
+/// @return The type in the varibale table.
 static TokenType resolveType(char *name) {
     for (int i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
@@ -423,6 +494,9 @@ static TokenType resolveType(char *name) {
     return UNKNOWN;
 }
 
+/// @brief Returns the type of a tracked function.
+/// @param name Name of the function.
+/// @return The type in the function table.
 static TokenType resolveTypef(char *name) {
     for (int i = 0; i < b->funcAmt; i++) {
         if (strcmp(b->funcs[i].name, name) == 0) {
@@ -434,6 +508,9 @@ static TokenType resolveTypef(char *name) {
     return UNKNOWN;
 }
 
+/// @brief Parses a function call.
+/// @param isModuleFunction Defines if the function belongs in a module.
+/// @return The function's return type.
 static TokenType functionCall(bool isModuleFunction) {
     char *cv = current().value;
     char name[1024];
@@ -457,6 +534,8 @@ static TokenType functionCall(bool isModuleFunction) {
     return type;
 }
 
+/// @brief Consumes the end semicolon.
+/// @param ctx The statement type.
 static void consumeStatementTerminator(const char *ctx) {
     if (current().type != SEMICOLON) {
         char buffer[256];
@@ -469,7 +548,10 @@ static void consumeStatementTerminator(const char *ctx) {
     advance();
 }
 
-static TokenType parseAtom(void) { // small singular unit of expression (number, identifier, string, etc)
+/// @brief Parses an atom.
+/// @return The type of atom.
+/// @note Atom: small singular unit of expression (number, identifier, string, etc).
+static TokenType parseAtom(void) {
     logBuildParser("Parsing atom");
 
     switch (current().type) {
@@ -534,6 +616,8 @@ static TokenType parseAtom(void) { // small singular unit of expression (number,
     return type;
 }
 
+/// @brief Parses a full expression.
+/// @return The result type of the expression.
 static TokenType parseExpression(void) {
     TokenType ltype = parseAtom(); // result -> top
 
@@ -569,6 +653,8 @@ static TokenType parseExpression(void) {
     return ltype;
 }
 
+/// @brief Parses a full expression and ensures the type is what is expected.
+/// @param aim The expected type.
 static void parseExpressionTC(TokenType aim) {
     TokenType type = parseExpression();
     if (aim != type) {
@@ -578,6 +664,7 @@ static void parseExpressionTC(TokenType aim) {
     return;
 }
 
+/// @brief Parses a variable assignment.
 static void parseAssign(void) {
     logBuildParser("Parsing assignment");
 
@@ -594,6 +681,7 @@ static void parseAssign(void) {
     expectCurrent(SEMICOLON);
 }
 
+/// @brief Parses a variable declaration.
 static void parseVarDecl(void) {
     logBuildParser("Parsing variable declaration");
 
@@ -626,6 +714,8 @@ static void parseVarDecl(void) {
     expectCurrent(SEMICOLON);
 }
 
+/// @brief Parses a native function.
+/// @note eg. @log; @dump; @trace.
 static void parseNative(void) {
     logBuildParser("Parsing Native Call");
     advance(); //past @
@@ -649,7 +739,8 @@ emitNat:
     expectAndPass(SEMICOLON);    
 }
 
-
+/// @brief Parses the body of a function.
+/// @param retType The type of return expected.
 static void parseFuncBody(TokenType retType) {
     bool has_ret = false;
     while (current().type != CLOSEBRACE &&
@@ -683,6 +774,7 @@ static void parseFuncBody(TokenType retType) {
     }
 }
 
+/// @brief Parse a function definition. 
 static void parseFunction(void) {
     logBuildParser("[FN] Enter parseFunction()");
 
@@ -781,6 +873,7 @@ static void parseFunction(void) {
     return;
 }
 
+/// @brief Parses a module import.
 static void parseModule(void) {
     int nameMaxLen = 8;
     char *name = malloc(nameMaxLen * sizeof(char));
@@ -883,6 +976,7 @@ module:
     expectCurrent(SEMICOLON);
 }
 
+/// @brief Parse a statement. General entry point for all options.
 static void parseStatement(void) {
     logBuildParser("Parsing statement");
 

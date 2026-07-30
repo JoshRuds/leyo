@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file runner.c
+/// @brief The runner handler.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

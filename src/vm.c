@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file vm.c
+/// @brief The VM.
+
 #include "../include/errors.h"
 #include "../include/codes.h"
 #include "../include/parser.h"
@@ -21,14 +24,17 @@
 
 // extern struct Value;
 
+/// @brief Describes a function call. Helps determine to return.
 typedef struct {
     uint32_t rtnAdr;
     //uint32_t stackPos;
 } Call;
 
+/// @brief Describes the runner. Contains all needed information to run the VM.
 typedef struct {
     uint8_t *code;
     uint32_t ip;
+    uint32_t size;
 
     char filename[512];
 
@@ -49,6 +55,7 @@ typedef struct {
 VM vmStd = {0};
 VM *vm;
 
+/// @brief Checks and re-allocates the call stack.
 static void checkCallStack(void) {
     if (vm->callAmt >= vm->callCap-1) {
         vm->callCap *= 2;
@@ -59,26 +66,50 @@ static void checkCallStack(void) {
     }
 }
 
+/// @brief Checks and re-allocates the stack.
+static void checkStack(void) {
+    if (vm->sp >= vm->stackCap-1) {
+        vm->stackCap *= 2;
+        vm->stack = realloc(
+            vm->stack,
+            vm->stackCap * sizeof(Value)
+        );
+    }
+}
+
+/// @brief Push the given value to the stack.
+/// @param v The value to push.
 static inline void push(Value v) {
-    checkCallStack();
+    checkStack();
     vm->stack[vm->sp++] = v;
 }
 
+/// @brief Pop the top value from the stack. 
+/// @return The top value.
 static inline Value pop(void) {
     if (vm->sp <= 0) {lraise(WF_VM, ERR_VM_UNDERFLOW, vm->ip,0, vm->filename);};
     return vm->stack[--vm->sp];
 }
 
+/// @brief Check the top value on the stack.
+/// @return The top value.
 static inline Value peek(void) {
     if (vm->sp <= 0) {lraise(WF_VM, ERR_VM_UNDERFLOW, vm->ip,0, vm->filename);};
     return vm->stack[vm->sp - 1];
 }
 
+/// @brief Check the second-top value on the stack.
+/// @return The second-top value.
 static inline Value prev(void) {
     if (vm->sp <= 1) {lraise(WF_VM, ERR_VM_UNDERFLOW, vm->ip,0, vm->filename);};
     return vm->stack[vm->sp - 2];
 }
 
+/// @brief Converts a value object to a string for outputing.
+/// @param v The value object.
+/// @param buf The buffer to @c snprintf() to.
+/// @param size The size of @p buf buffer.
+/// @return The string to output to.
 static const char *valueToString(Value v, char *buf, size_t size) {
     switch (v.flag) {
         case VAL_INT:
@@ -105,6 +136,8 @@ static const char *valueToString(Value v, char *buf, size_t size) {
     return buf;
 }
 
+/// @brief Print the given value.
+/// @param v The value object to print.
 static void printValue(Value v) {
     switch (v.flag) {
         case VAL_INT:
@@ -128,6 +161,8 @@ static void printValue(Value v) {
     }
 }
 
+/// @brief Dumps the current vm state for logging.
+/// @param op The operation about to run.
 static void dumpState(uint8_t op) {
     char buf[512];
     char rBuf[64];
@@ -155,14 +190,21 @@ static void dumpState(uint8_t op) {
     logRuntime(buf);
 }
 
+/// @brief Get the current byte in the bytecode.
+/// @return The current byte.
 static uint8_t readByte(void) {
     return vm->code[vm->ip];
 }
 
-static void advanceByte(void) {
+/// @brief Move the instruction pointer forward by one. 
+static inline void advanceByte(void) {
+    if (vm->ip+1>=vm->size)
+        lraise(WF_VM, ERR_VM_OVERFLOW, vm->ip, 0, vm->filename);
     vm->ip++;
 }
 
+/// @brief Get the current two bytes in the bytecode.
+/// @return The current two bytes.
 static uint16_t read16(void) {
     uint16_t low = readByte();
     advanceByte();
@@ -172,6 +214,8 @@ static uint16_t read16(void) {
     return low | (high << 8);
 }
 
+/// @brief Get the current four bytes in the bytecode.
+/// @return The current four bytes.
 static uint32_t read32(void) {
     uint32_t low = read16();
     uint32_t high = read16();
@@ -179,6 +223,11 @@ static uint32_t read32(void) {
     return low | (high << 16);
 }
 
+/// @brief Decodes the constant pool from bytes to a Value array.
+/// @param data The bytes to decode.
+/// @param length The length of @p data bytes.
+/// @param outCount Gets set to the amount of values returned.
+/// @return The decoded value array.
 static Value *decodeConstPool(const uint8_t *data, int length, int *outCount) {
     logRuntime("Decoding constant pool");
     Value *values = NULL;
@@ -275,6 +324,9 @@ static Value *decodeConstPool(const uint8_t *data, int length, int *outCount) {
     return values;
 }
 
+/// @brief Frees the given value array.
+/// @param values The values to free.
+/// @param count The amount of values.
 static void freeConstPool(Value *values, int count) {
     if (!values) {
         return;
@@ -288,7 +340,7 @@ static void freeConstPool(Value *values, int count) {
 
     free(values);
 }
-
+/// @brief Pops the top 2 values and pushes the result of adding them. 
 static void addition(void) {
     Value rhs = pop();
     Value lhs = pop();
@@ -349,6 +401,7 @@ static void addition(void) {
     }
 }
 
+/// @brief Pops the top 2 values and pushes the result of subtracting them. 
 static void subtraction(void) {
     Value rhs = pop();
     Value lhs = pop();
@@ -409,6 +462,7 @@ static void subtraction(void) {
     }
 }
 
+/// @brief Pops the top 2 values and pushes the result of multiplying them. 
 static void multiplication(void) {
     Value rhs = pop();
     Value lhs = pop();
@@ -469,6 +523,7 @@ static void multiplication(void) {
     }
 }
 
+/// @brief Pops the top 2 values and pushes the result of dividing them. 
 static void division(void) {
     Value rhs = pop();
     Value lhs = pop();
@@ -529,6 +584,7 @@ static void division(void) {
     }
 }
 
+/// @brief Pops the top 2 values and pushes the expodent. 
 static void power(void) {
     Value rhs = pop();
     Value lhs = pop();
@@ -593,6 +649,7 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
     logRuntime("Starting VM execution");
     vmStd.code = bc.data;
     vmStd.ip = 0;
+    vmStd.size = bc.length;
     if (filename) {
         snprintf(vmStd.filename, 511, "%s", filename);
     }

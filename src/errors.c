@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file errors.c
+/// @brief The error handler.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,7 +22,6 @@
 #endif
 
 #include "../include/errors.h"
-#include "../include/codes.h"
 #include "../include/codes.h"
 
 #define STRICT_MODE 0
@@ -44,20 +46,32 @@ static LogConfig logConfig = {
     .archivePath = "logs/archive/"
 };
 
-typedef struct {
+/// @brief Statistics for how many logs have been archived or deleted.
+typedef struct { 
     int archived;
     int deleted;
 } RetentionStats;
 
+/// @brief Determines if the char is '/' or '\'.
+/// @param c The char to check.
+/// @return Bool - true if char is seperator, else false.
 static bool isSeparator(char c) {
     return c == '/' || c == '\\';
 }
 
+/// @brief Checks if the given path is a file.
+/// @param path The path to check.
+/// @return Bool - true if path exists, else false.
 static bool pathExists(const char *path) {
     struct stat st;
     return stat(path, &st) == 0;
 }
 
+/// @brief Checks if the string has a given suffix.
+/// @param value The string to check.
+/// @param suffix The suffix.
+/// @return Bool - true if @p suffix is present in @p value else false.
+/// @note Equivilant to python's .endswith().
 static bool endsWith(const char *value, const char *suffix) {
     size_t valueLen = strlen(value);
     size_t suffixLen = strlen(suffix);
@@ -69,6 +83,10 @@ static bool endsWith(const char *value, const char *suffix) {
     return strcmp(value + valueLen - suffixLen, suffix) == 0;
 }
 
+/// @brief Copies string over to a buffer.
+/// @param dest The buffer.
+/// @param destSize Size of the buffer.
+/// @param src The string to copy.
 static void copyPath(char *dest, size_t destSize, const char *src) {
     if (destSize == 0) {
         return;
@@ -77,6 +95,10 @@ static void copyPath(char *dest, size_t destSize, const char *src) {
     snprintf(dest, destSize, "%s", src ? src : "");
 }
 
+/// @brief Appends a string over to a buffer.
+/// @param dest The buffer.
+/// @param destSize Size of the buffer.
+/// @param src The string to append.
 static void appendPath(char *dest, size_t destSize, const char *src) {
     size_t used = strlen(dest);
 
@@ -87,6 +109,9 @@ static void appendPath(char *dest, size_t destSize, const char *src) {
     strncat(dest, src, destSize - used - 1);
 }
 
+/// @brief Ensures the given path ends with a seperator.
+/// @param path The given string.
+/// @param size The size of the @p path string.
 static void ensureTrailingSeparator(char *path, size_t size) {
     size_t len = strlen(path);
 
@@ -106,6 +131,8 @@ static void ensureTrailingSeparator(char *path, size_t size) {
     path[len + 1] = '\0';
 }
 
+/// @brief Ensures that the given path has a parent directory.
+/// @param path The path to check.
 static void ensureParentDirectories(const char *path) {
     char partial[LOG_PATH_MAX];
     size_t len = 0;
@@ -134,6 +161,10 @@ static void ensureParentDirectories(const char *path) {
     }
 }
 
+/// @brief Finds the directory from the given path.
+/// @param path The path to check.
+/// @param out Buffer to be overwriten with the directory path.
+/// @param outSize The size of the @p out buffer.
 static void getDirectoryFromPath(const char *path, char *out, size_t outSize) {
     const char *slash = strrchr(path, '/');
     const char *backslash = strrchr(path, '\\');
@@ -157,6 +188,9 @@ static void getDirectoryFromPath(const char *path, char *out, size_t outSize) {
     out[dirLen] = '\0';
 }
 
+/// @brief Gets the file name relative to its parent directory.
+/// @param path The absolute path of the file.
+/// @return The filename.
 static const char *getBaseName(const char *path) {
     const char *slash = strrchr(path, '/');
     const char *backslash = strrchr(path, '\\');
@@ -176,6 +210,11 @@ static const char *getBaseName(const char *path) {
     return slash > backslash ? slash + 1 : backslash + 1;
 }
 
+/// @brief Ensures safe target to archive to with no overwrites.
+/// @param archiveDir The archive directory.
+/// @param sourceName The name of the source file.
+/// @param out Buffer to store the safe file path.
+/// @param outSize Size of the @p out buffer.
 static void buildArchiveTarget(const char *archiveDir, const char *sourceName, char *out, size_t outSize) {
     copyPath(out, outSize, archiveDir);
     appendPath(out, outSize, sourceName);
@@ -207,6 +246,10 @@ static void buildArchiveTarget(const char *archiveDir, const char *sourceName, c
     }
 }
 
+/// @brief Takes action on an old log.
+/// @param fullPath The full path of the log to take action on.
+/// @param archiveDir The directory to archive to.
+/// @param stats The retention stats to update.
 static void moveOrDeleteOldLog(const char *fullPath, const char *archiveDir, RetentionStats *stats) {
     if (logConfig.retentionAction == 0) {
         if (remove(fullPath) == 0) {
@@ -224,6 +267,11 @@ static void moveOrDeleteOldLog(const char *fullPath, const char *archiveDir, Ret
     }
 }
 
+/// @brief Checks path exists and takes action if needed.
+/// @param fullPath The full path of the candidate.
+/// @param archiveDir The directory to archive to.
+/// @param now The current time.
+/// @param stats The stats to update.
 static void sweepCandidate(const char *fullPath, const char *archiveDir, time_t now, RetentionStats *stats) {
     struct stat st;
 
@@ -245,6 +293,11 @@ static void sweepCandidate(const char *fullPath, const char *archiveDir, time_t 
     moveOrDeleteOldLog(fullPath, archiveDir, stats);
 }
 
+/// @brief Finds all logs in the given directory. Runs @c sweepCandidate() on them.
+/// @param logDir The log directory.
+/// @param archiveDir The archive directory.
+/// @param activeBase Current log file (usally `latest.lylog`).
+/// @param stats The stats to update.
 static void sweepLogsInDirectory(const char *logDir, const char *archiveDir, const char *activeBase, RetentionStats *stats) {
     time_t now = time(NULL);
 
@@ -307,6 +360,7 @@ static void sweepLogsInDirectory(const char *logDir, const char *archiveDir, con
 #endif
 }
 
+/// @brief Checks if any logs are needed to be deleted/archived and takes action.
 static void maintainLogs(void) {
     if (!logConfig.enabled || logConfig.retentionDays <= 0) {
         return;
@@ -344,6 +398,8 @@ static void maintainLogs(void) {
     }
 }
 
+/// @brief Checks if log is needed to be moved from latest to timestamped and takes action.
+/// @param path The path to the log.
 static void rotateLogIfNeeded(const char *path) {
     if (!logConfig.rotate || !pathExists(path)) {
         return;
@@ -387,6 +443,9 @@ static void rotateLogIfNeeded(const char *path) {
     }
 }
 
+/// @brief Writes to the log file with the message tagged.
+/// @param tag The tag to prepend to the message.
+/// @param msg The message.
 static void writeTagged(const char *tag, const char *msg) {
     if (!logConfig.enabled || !logFile) {
         return;
@@ -513,6 +572,9 @@ void lraise(WhereFrom wf, ErrorCode code, int line, int col, char filename[512])
     }
 }
 
+/// @brief Prints the given error.
+/// @param err The raised error.
+/// @param related The related error information.
 static void printErr(RaisedError *err, const Error *related) {
     if (err->wf == WF_GENERAL) {
         fprintf(stderr,

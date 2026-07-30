@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// @file bytecode.h
+/// @brief Bytecode definitions for the parser and vm.
+
 #ifndef BYTECODE_H
 #define BYTECODE_H
 
