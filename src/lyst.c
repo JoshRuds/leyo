@@ -172,6 +172,10 @@ const char *lystGet(const char *path) {
     return NULL;
 }
 
+/// @brief Checks if the two strings are equal when case is ignored.
+/// @param a String A.
+/// @param b String B.
+/// @return Bool - true if they are equal, else false.
 static bool lystEqualsIgnoreCase(const char *a, const char *b) {
     while (*a && *b) {
         if (tolower((unsigned char)*a) != tolower((unsigned char)*b)) {

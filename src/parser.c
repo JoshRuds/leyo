@@ -40,9 +40,9 @@ typedef enum {
 
 
 // HOISTS
-
 static void parseStatement(void);
 
+/// @brief Checks to ensure the byte buffer is large enough, else it re-allocates double memory for it.
 static void checkByteBuff(void) {
     logBuildParser("Checking ByteBuff Size");
     if (b->byteIndex >= b->byteCap - 1) {

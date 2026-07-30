@@ -70,6 +70,10 @@ static bool containsIgnoreCase(const char *haystack, const char *needle) {
     return false;
 }
 
+/// @brief Checks if given entry matches the query.
+/// @param entry The entry object to search.
+/// @param query The query to search for.
+/// @return Bool - true if @p query is anywhere in the @p entry object, else false.
 static bool helpEntryMatches(const HelpEntry *entry, const char *query) {
     if (!query || !*query) {
         return true;

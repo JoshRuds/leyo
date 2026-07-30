@@ -67,6 +67,11 @@ static bool pathExists(const char *path) {
     return stat(path, &st) == 0;
 }
 
+/// @brief Checks if the string has a given suffix.
+/// @param value The string to check.
+/// @param suffix The suffix.
+/// @return Bool - true if @p suffix is present in @p value else false.
+/// @note Equivilant to python's .endswith().
 static bool endsWith(const char *value, const char *suffix) {
     size_t valueLen = strlen(value);
     size_t suffixLen = strlen(suffix);
@@ -78,6 +83,10 @@ static bool endsWith(const char *value, const char *suffix) {
     return strcmp(value + valueLen - suffixLen, suffix) == 0;
 }
 
+/// @brief Copies string over to a buffer.
+/// @param dest The buffer.
+/// @param destSize Size of the buffer.
+/// @param src The string to copy.
 static void copyPath(char *dest, size_t destSize, const char *src) {
     if (destSize == 0) {
         return;
@@ -86,6 +95,10 @@ static void copyPath(char *dest, size_t destSize, const char *src) {
     snprintf(dest, destSize, "%s", src ? src : "");
 }
 
+/// @brief Appends a string over to a buffer.
+/// @param dest The buffer.
+/// @param destSize Size of the buffer.
+/// @param src The string to append.
 static void appendPath(char *dest, size_t destSize, const char *src) {
     size_t used = strlen(dest);
 
@@ -96,6 +109,9 @@ static void appendPath(char *dest, size_t destSize, const char *src) {
     strncat(dest, src, destSize - used - 1);
 }
 
+/// @brief Ensures the given path ends with a seperator.
+/// @param path The given string.
+/// @param size The size of the @p path string.
 static void ensureTrailingSeparator(char *path, size_t size) {
     size_t len = strlen(path);
 
@@ -115,6 +131,8 @@ static void ensureTrailingSeparator(char *path, size_t size) {
     path[len + 1] = '\0';
 }
 
+/// @brief Ensures that the given path has a parent directory.
+/// @param path The path to check.
 static void ensureParentDirectories(const char *path) {
     char partial[LOG_PATH_MAX];
     size_t len = 0;
@@ -143,6 +161,10 @@ static void ensureParentDirectories(const char *path) {
     }
 }
 
+/// @brief Finds the directory from the given path.
+/// @param path The path to check.
+/// @param out Buffer to be overwriten with the directory path.
+/// @param outSize The size of the @p out buffer.
 static void getDirectoryFromPath(const char *path, char *out, size_t outSize) {
     const char *slash = strrchr(path, '/');
     const char *backslash = strrchr(path, '\\');
@@ -166,6 +188,9 @@ static void getDirectoryFromPath(const char *path, char *out, size_t outSize) {
     out[dirLen] = '\0';
 }
 
+/// @brief Gets the file name relative to its parent directory.
+/// @param path The absolute path of the file.
+/// @return The filename.
 static const char *getBaseName(const char *path) {
     const char *slash = strrchr(path, '/');
     const char *backslash = strrchr(path, '\\');
@@ -316,6 +341,7 @@ static void sweepLogsInDirectory(const char *logDir, const char *archiveDir, con
 #endif
 }
 
+/// @brief Checks if any logs are needed to be deleted/archived and takes action.
 static void maintainLogs(void) {
     if (!logConfig.enabled || logConfig.retentionDays <= 0) {
         return;
@@ -353,6 +379,8 @@ static void maintainLogs(void) {
     }
 }
 
+/// @brief Checks if log is needed to be moved from latest to timestamped and takes action.
+/// @param path The path to the log.
 static void rotateLogIfNeeded(const char *path) {
     if (!logConfig.rotate || !pathExists(path)) {
         return;
@@ -396,6 +424,9 @@ static void rotateLogIfNeeded(const char *path) {
     }
 }
 
+/// @brief Writes to the log file with the message tagged.
+/// @param tag The tag to prepend to the message.
+/// @param msg The message.
 static void writeTagged(const char *tag, const char *msg) {
     if (!logConfig.enabled || !logFile) {
         return;

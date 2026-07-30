@@ -381,7 +381,7 @@ def find_functions(source_path):
 
             # A semicolon before an opening brace means this is
             # probably a prototype, typedef, variable, or declaration.
-            if ";" in declaration and "{" not in declaration:
+            if ";" in declaration and not ("{" in declaration):
 
                 declaration = ""
                 declaration_start = None

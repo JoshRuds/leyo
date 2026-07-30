@@ -94,18 +94,25 @@ static void push(Token token) {
     lexRes.stream[lexRes.count++] = token;
 }
 
+/// @brief Gets the next character.
+/// @return The next char.
 static char peek(void) {
     return src[l->i+1];
 }
 
+/// @brief Gets the current character.
+/// @return The current char.
 static char current(void) {
     return src[l->i];
 }
 
+/// @brief Gets the previous lexer character.
+/// @return The previous char.
 static char previous(void) {
     return src[l->i-1];
 }
 
+/// @brief Moves on the lexer by one char.
 static void advance(void) {
     l->i++;
     if (current() == '\n') {
