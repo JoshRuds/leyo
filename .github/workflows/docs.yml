@@ -148,6 +148,9 @@ jobs:
             --exclude="README.md" \
             --exclude="LICENSE" \
             --exclude=".nojekyll" \
+            --exclude="LICENSE-APACHE" \
+            --exclude="LICENSE-CC-BY" \
+            --exclude=".git/" \
             docs/html/ docs-repo/
 
       # =========================================================
@@ -157,7 +160,7 @@ jobs:
         id: changes
         working-directory: docs-repo
         run: |
-          if git diff --quiet && git diff --cached --quiet; then
+          if [ -z "$(git status --porcelain)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No documentation changes detected."
           else
