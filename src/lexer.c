@@ -78,9 +78,29 @@ Token token(const char *value, TokenType type) {
     return _token(value, type, l->line, l->scol);
 }
 
+/// @brief Check the token stream capacity, and re-allocate if low.
+/// @return Bool - true if success, else false. 
+static bool checkTokenStream(void) {
+    if (lexRes.count < lexRes.capacity)
+        return true; // No realloc needed
+
+    int newCapacity = lexRes.capacity == 0 ? 256 : lexRes.capacity * 2;
+
+    Token *newStream = realloc(lexRes.stream, newCapacity * sizeof(Token));
+
+    if (!newStream)
+        return false;
+
+    lexRes.stream = newStream;
+    lexRes.capacity = newCapacity;
+
+    return true;
+}
+
 /// @brief Pushes the given token to the lexRes object.
 /// @param token The token to push.
 static void push(Token token) {
+    checkTokenStream();
     logBuildLexer("Token pushed to stream");
     if (lexRes.count >= lexRes.capacity-1) {
         lexRes.capacity *= 2;

@@ -20,7 +20,7 @@
 #include <math.h>
 
 #define SPEED_STACK_MAX 256
-#define GLOBALS_MAX 65535
+// #define GLOBALS_MAX 65535
 
 // extern struct Value;
 
@@ -42,7 +42,8 @@ typedef struct {
     uint32_t sp;
     uint32_t stackCap;
 
-    Value globals[GLOBALS_MAX];
+    Value *globals;
+    uint64_t globalAmount; // how many globals are used
     
     Value *consts;
     int constCount;
@@ -654,6 +655,13 @@ static void power(void) {
     }
 }
 
+static void freeAll(void) {
+    freeConstPool(vmStd.consts, vmStd.constCount);
+    free(vmStd.stack);
+    free(vmStd.globals);
+    return;
+}
+
 int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
     logRuntime("Starting VM execution");
     vmStd.code = bc.data;
@@ -670,6 +678,8 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
     vmStd.sp = 0;
     vmStd.stackCap = 64;
     vmStd.stack = malloc(vmStd.stackCap * sizeof(Value));
+    vmStd.globalAmount = bc.globalAmount;
+    vmStd.globals = malloc(vmStd.globalAmount * sizeof(Value));
     vm = &vmStd;
 
     if (bc.cb.length > 0 && bc.cb.data != NULL) {
@@ -677,6 +687,7 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
 
         if (!vmStd.consts) {
             logRuntime("Failed to decode constant pool");
+            freeAll();
             lraise(WF_VM, ERR_VM_CANNOT_DECODE_CONST_POOL, vm->ip,0, vm->filename);
             return 1;
         }
@@ -761,9 +772,9 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
 
             case OP_STORE: {
                 uint16_t slot = read16();
-                if (slot >= GLOBALS_MAX) {
+                if (slot >= vm->globalAmount) {
+                    freeAll();
                     lraise(WF_VM, ERR_VM_GLOBAL_SLOT_OUT_OF_RANGE, vm->ip,0, vm->filename);
-                    freeConstPool(vmStd.consts, vmStd.constCount);
                     return 1;
                 }
                 vm->globals[slot] = pop();
@@ -772,9 +783,9 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
 
             case OP_LOAD: {
                 uint16_t slot = read16();
-                if (slot >= GLOBALS_MAX) {
+                if (slot >= vm->globalAmount) {
+                    freeAll();
                     lraise(WF_VM, ERR_VM_GLOBAL_SLOT_OUT_OF_RANGE, vm->ip,0, vm->filename);
-                    freeConstPool(vmStd.consts, vmStd.constCount);
                     return 1;
                 }
                 push(vm->globals[slot]);
@@ -785,8 +796,8 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
                 uint16_t constIndex = read16();
 
                 if (constIndex >= (uint16_t)vm->constCount) {
+                    freeAll();
                     lraise(WF_VM, ERR_VM_CONST_OUT_OF_RANGE, vm->ip,0, vm->filename);
-                    freeConstPool(vmStd.consts, vmStd.constCount);
                     return 1;
                 }
 
@@ -852,21 +863,21 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
             }
 
             case OP_FINISH: {
-                freeConstPool(vmStd.consts, vmStd.constCount);
+                freeAll();
                 return pop().as.i;
             }
 
             default: {
                 logRuntime("Unknown opcode encountered");
                 printf("Unknown opcode: 0x%02X at %d\n", op, vm->ip - 1);
-                freeConstPool(vmStd.consts, vmStd.constCount);
+                freeAll();
                 exit(1);
             }
         }
     }
 
     logRuntime("VM exited unexpectedly");
-    freeConstPool(vmStd.consts, vmStd.constCount);
+    freeAll();
     lraise(WF_VM, ERR_VM_UNEXPECTED_EXIT, vm->ip,0, vm->filename);
     return 1;
 }

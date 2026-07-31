@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <assert.h>
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
@@ -41,16 +42,6 @@ typedef enum {
 
 // HOISTS
 static void parseStatement(void);
-
-/// @brief Checks to ensure the byte buffer is large enough, else it re-allocates double memory for it.
-static void checkByteBuff(void) {
-    logBuildParser("Checking ByteBuff Size");
-    if (b->byteIndex >= b->byteCap - 1) {
-        logBuildParser("Doubling ByteBuff Capacity");
-        b->byteCap = b->byteCap * 2;
-        b->bytebuff = realloc(b->bytebuff, b->byteCap * sizeof(uint8_t));
-    }
-}
 
 /// @brief Get the current token.
 /// @return The token at the current parser position.
@@ -140,8 +131,22 @@ static void expectAndPass(TokenType type) {
     advance();
 }
 
+/// @brief Checks to ensure the byte buffer is large enough, else it re-allocates double memory for it.
+static void checkByteBuff(void) {
+    logBuildParser("Checking ByteBuff Size");
+    if (b->byteIndex >= b->byteCap - 1) {
+        logBuildParser("Doubling ByteBuff Capacity");
+        b->byteCap = b->byteCap * 2;
+        b->bytebuff = realloc(b->bytebuff, b->byteCap * sizeof(uint8_t));
+        if (b->bytebuff == NULL) {
+            lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
+            return;
+        }
+    }
+}
+
 /// @brief Appends the one-byte value to the byte-buffer.
-/// @param value The byte to append.
+/// @param value The byte to append.xs
 static void emit(uint8_t value) {
     checkByteBuff();
     if (b->byteIndex >= b->byteCap) {
@@ -205,9 +210,35 @@ static void patch32(uint32_t loc, uint32_t value) {
     b->bytebuff[loc+3] = (uint8_t)((value >> 24) & 0xFF);
 }
 
+/// @brief Checks to ensure the const buffer is large enough, else it re-allocates double memory for it.
+/// @note Do not confuse with @c checkConstBuff() which has an extra 'f' - the const buf is what gets given to the
+/// VM, const buf**f** is internal only and belongs to @c b-> bytecoder object.
+static bool checkConstBuf(size_t needed) {
+    if (needed <= constBuf.capacity)
+        return true;
+
+    size_t newCap = constBuf.capacity * 2;
+
+    while (newCap < needed)
+        newCap *= 2;
+
+    uint8_t *newData = realloc(constBuf.data, newCap);
+
+    if (!newData) {
+        lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
+        return false;
+    }
+
+    constBuf.data = newData;
+    constBuf.capacity = newCap;
+
+    return true;
+}
+
 /// @brief Emits a byte to the const buffer.
 /// @param v The byte to emit.
 static void constEmit(uint8_t v) {
+    checkConstBuf(constBuf.length + 1);
     constBuf.data[constBuf.length++] = v;
 }
 
@@ -253,6 +284,7 @@ static TokenType getTypeVar(void) {
 /// @param v The value to append.
 static void serializeValue(Value *v) {
     constEmit((uint8_t)v->flag);
+    checkConstBuf(constBuf.length + 1);
 
     switch (v->flag) {
         case VAL_INT: {
@@ -335,6 +367,24 @@ static bool checkConstDuplicate(Value v, uint64_t *loc) {
     return false;
 }
 
+/// @brief Checks to ensure the const buffer is large enough, else it re-allocates double memory for it.
+/// @note Do not confuse with @c checkConstBuf() which has an one less 'f' - the const buf is what gets given to the
+/// VM, const buf**f** is internal only and belongs to @c b-> object.
+static void checkConstBuff(void) {
+    if (b->constAmt >= b->constCap) {
+        size_t newCap = b->constCap * 2;
+
+        Value *newConsts = realloc(b->consts, newCap * sizeof(Value));
+        if (newConsts == NULL) {
+            lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
+            return;
+        }
+
+        b->consts = newConsts;
+        b->constCap = newCap;
+    }
+}
+
 /// @brief Emits a constant to the const pool and returns its slot.
 /// @return The slot at which the const is set at.
 static uint64_t emitConst(void) {
@@ -370,8 +420,25 @@ static uint64_t emitConst(void) {
     }
 
     serializeValue(&v);
+    checkConstBuff();
     b->consts[b->constAmt++] = v;
     return b->constAmt-1;
+}
+
+/// @brief Checks to ensure the global buffer is large enough, else it re-allocates double memory for it.
+static void checkGlobalBuff(void) {
+    if (b->globalCount >= b->globalCap-1) {
+        size_t newCap = b->globalCap * 2;
+
+        Global *newGlobals = realloc(b->globals, newCap * sizeof(Global));
+        if (newGlobals == NULL) {
+            lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
+            return;
+        }
+
+        b->globals = newGlobals;
+        b->globalCap = newCap;
+    }
 }
 
 /// @brief Checks if the given string is a known keyword.
@@ -404,21 +471,22 @@ static bool isNameNotValid(char *name, bool noRaise) {
     if (res) 
         return res;
 
-    for (int i = 0; i < b->globalCount; i++) {
+    for (uint64_t i = 0; i < b->globalCount; i++) {
+        if (!b->globals[i].name || !name) {
+            continue;
+        }
+
         if (strcmp(b->globals[i].name, name) == 0) {
             if (!noRaise)
                 lraise(WF_BUILD, ERR_PARSER_VAR_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
             return true;
-            // return b->globals[i].slot;
         }
     }
-
     for (int i = 0; i < b->funcAmt; i++) {
         if (strcmp(b->funcs[i].name, name) == 0) {
             if (!noRaise)
                 lraise(WF_BUILD, ERR_PARSER_FUNC_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
             return true;
-            // return b->funcs[i].address;
         }
     }
 
@@ -448,12 +516,13 @@ static uint64_t define(char *name, TokenType type) {
     if (isNameNotValid(name, false))
         return -1;
 
-    int slot = b->globalCount;
+    checkGlobalBuff();
 
-    b->globals[b->globalCount].name = strdup(name);
-    b->globals[b->globalCount].slot = slot;
-    b->globals[b->globalCount].type = type;
-    b->globalCount++;
+    int slot = b->globalCount++;
+
+    b->globals[slot].name = strdup(name);
+    b->globals[slot].slot = slot;
+    b->globals[slot].type = type;
 
     return slot;
 }
@@ -514,7 +583,7 @@ static uint64_t resolvef(char *name) {
 /// @param name Name of the variable.
 /// @return The type in the varibale table.
 static TokenType resolveType(char *name) {
-    for (int i = 0; i < b->globalCount; i++) {
+    for (uint64_t i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
             return b->globals[i].type;
         }
@@ -808,7 +877,7 @@ static void parseFuncBody(TokenType retType) {
 
         uint32_t before = b->pos;
 
-        // RETURN HANDLING (no hacks, no eat)
+        // RETURN HANDLING
         if (strcmp(current().value, "rtn") == 0) {
             has_ret = true;
             advance();
@@ -1094,12 +1163,15 @@ ByteCodeResult parse(TokenStream *ts, char *currentFileName) {
     b->byteCap = 64;
     b->bytebuff = malloc(sizeof(uint8_t) * b->byteCap);
     b->byteIndex = 0;
-    b->globalCount = 0;
     b->funcs = malloc(sizeof(Func) * 1024);
     b->funcAmt = 0;
     b->funcPrefix[0] = '\0';
     b->constAmt = 0;
-    b->consts = malloc(sizeof(Value) * 1024);
+    b->constCap = 1;
+    b->consts = malloc(sizeof(Value) * b->constCap);
+    b->globalCount = 0;
+    b->globalCap = 16;
+    b->globals = malloc(b->globalCap * sizeof(Global));
     b->moduleCap = 8;
     b->moduleAmt = 0;
     b->modulesLoaded = malloc(sizeof(char *) * b->moduleCap);
@@ -1114,7 +1186,8 @@ ByteCodeResult parse(TokenStream *ts, char *currentFileName) {
     }
 
     constBuf.length = 0;
-    constBuf.data = malloc(65535);
+    constBuf.capacity = 65535;
+    constBuf.data = malloc(constBuf.capacity);
 
     if (!constBuf.data) {
         lraise(WF_GENERAL, ERR_PARSER_CANNOT_ALLOCATE, 0, 0, NULL);
@@ -1142,6 +1215,8 @@ ByteCodeResult parse(TokenStream *ts, char *currentFileName) {
     res.length = b->byteIndex;
     res.data = malloc(res.length);
     memcpy(res.data, b->bytebuff, res.length);
+
+    res.globalAmount = b->globalCount;
 
     size_t cap = 65535;
     uint8_t *consts = malloc(cap);
