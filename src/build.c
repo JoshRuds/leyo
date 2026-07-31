@@ -124,15 +124,13 @@ tokenising:
     logController("Tokenisation completed");
 
     if (dump) {
-       printTokenStream(ts); 
+        printTokenStream(ts);
     }
-
-    /*
+    
     if (isErr) {
         logController("Errors detected after tokenisation");
         callAllErr();
     }
-    */
 
     ByteCodeResult bcr = headThis(parse(&ts, filename));
 

@@ -107,8 +107,11 @@ endif
 run: all
 	$(TARGET)
 
+release: CFLAGS += -O2 -DNDEBUG -flto
+release: clean all
+
 debug: clean all
-CFLAGS += -g -O0 -fsanitize=address -Wall -Wextra
+debug: CFLAGS += -g -O0 -fsanitize=address -Wall -Wextra
 
 clean:
 ifeq ($(OS),Windows_NT)

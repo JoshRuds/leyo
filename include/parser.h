@@ -10,6 +10,7 @@
 #define PARSER_H
 
 #include <stdint.h>
+#include <stdlib.h>
 #include "../include/type.h"
 
 /// @brief A global object - contains a slot for where in the global array it is.
@@ -61,11 +62,13 @@ typedef struct {
     uint32_t byteIndex;
     uint32_t byteCap;
 
-    Global globals[65535];
+    Global *globals;
     int globalCount;
+    int globalCap;
 
     Value *consts;
-    uint64_t constAmt;
+    int constAmt;
+    int constCap;
 
     Func *funcs;
     int funcAmt;
@@ -83,6 +86,7 @@ typedef struct {
 typedef struct {
     uint8_t *data;
     int length;
+    size_t capacity;
 } ConstBuffer;
 
 /// @brief The result to be passed between processes.
@@ -90,6 +94,7 @@ typedef struct {
     uint8_t *data;
     int length;
     ConstBuffer cb;
+    uint64_t globalAmount;
 } ByteCodeResult;
 
 /// @brief The entry point to parsing.
