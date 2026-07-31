@@ -168,6 +168,19 @@ static void emit32(uint32_t value) {
     emit((uint8_t)((value >> 24) & 0xFF));
 }
 
+/// @brief Appends the eight-byte value to the byte-buffer.
+/// @param value The eight bytes to append.
+static void emit64(uint64_t value) {
+    emit((uint8_t)(value & 0xFF));
+    emit((uint8_t)((value >> 8) & 0xFF));
+    emit((uint8_t)((value >> 16) & 0xFF));
+    emit((uint8_t)((value >> 24) & 0xFF));
+    emit((uint8_t)((value >> 32) & 0xFF));
+    emit((uint8_t)((value >> 40) & 0xFF));
+    emit((uint8_t)((value >> 48) & 0xFF));
+    emit((uint8_t)((value >> 56) & 0xFF));
+}
+
 /// @brief Emits a empty four-byte slot.
 /// @return The location.
 static uint32_t reserve32(void) {
@@ -386,14 +399,15 @@ static bool isKeyword(char *tc) {
 /// @param name Name to check.
 /// @param noRaise Defines if the helper should raise errors if not valid.
 /// @return Bool - true if not valid, else false.
-static bool isNameNotValid(const char *name, bool noRaise) {
+static bool isNameNotValid(char *name, bool noRaise) {
     bool res = isKeyword(name);
     if (res) 
         return res;
 
     for (int i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
-            lraise(WF_BUILD, ERR_PARSER_VAR_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
+            if (!noRaise)
+                lraise(WF_BUILD, ERR_PARSER_VAR_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
             return true;
             // return b->globals[i].slot;
         }
@@ -401,7 +415,8 @@ static bool isNameNotValid(const char *name, bool noRaise) {
 
     for (int i = 0; i < b->funcAmt; i++) {
         if (strcmp(b->funcs[i].name, name) == 0) {
-            lraise(WF_BUILD, ERR_PARSER_FUNC_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
+            if (!noRaise)
+                lraise(WF_BUILD, ERR_PARSER_FUNC_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
             return true;
             // return b->funcs[i].address;
         }
@@ -410,11 +425,26 @@ static bool isNameNotValid(const char *name, bool noRaise) {
     return false;
 }
 
+/// @brief Gets if given name exists.
+/// @param name Name to check.
+/// @return Bool - true if name exists, else false. 
+static bool exists(const char *name) {
+    for (int i = 0; i < b->globalCount; i++)
+        if (strcmp(b->globals[i].name, name) == 0)
+            return true;
+
+    for (int i = 0; i < b->funcAmt; i++)
+        if (strcmp(b->funcs[i].name, name) == 0)
+            return true;
+    
+    return false;
+}
+
 /// @brief Defines a variable to be tracked.
 /// @param name Name of the variable.
 /// @param type Type of the variable.
 /// @return The slot in the variable table.
-static int define(const char *name, TokenType type) {
+static uint64_t define(char *name, TokenType type) {
     if (isNameNotValid(name, false))
         return -1;
 
@@ -432,7 +462,7 @@ static int define(const char *name, TokenType type) {
 /// @param name Name of the function.
 /// @param type Type of the function.
 /// @return The slot in the function table.
-static uint32_t definef(const char *name, TokenType ret) {
+static uint64_t definef(char *name, TokenType ret) {
     if (isNameNotValid(name, false))
         return -1;
 
@@ -450,7 +480,7 @@ static uint32_t definef(const char *name, TokenType ret) {
 /// @brief Returns the slot of a tracked variable.
 /// @param name Name of the variable.
 /// @return The slot in the varibale table.
-static int resolve(char *name) {
+static uint64_t resolve(char *name) {
     for (int i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
             return b->globals[i].slot;
@@ -464,7 +494,7 @@ static int resolve(char *name) {
 /// @brief Returns the slot of a tracked function.
 /// @param name Name of the function.
 /// @return The slot in the function table.
-static uint32_t resolvef(char *name) {
+static uint64_t resolvef(char *name) {
     for (int i = 0; i < b->funcAmt; i++) {
         if (strcmp(b->funcs[i].name, name) == 0) {
             return b->funcs[i].address;
@@ -523,7 +553,7 @@ static TokenType functionCall(bool isModuleFunction) {
     }
     logBuildParser("atom is ident func");
     emit(OP_CALL);
-    emit32((int32_t)(resolvef(name) - (b->byteIndex + 4)));
+    emit64((int64_t)(resolvef(name) - (b->byteIndex + 8)));
     expectAndPass(OPENBRAC);
     while (current().type != CLOSEBRAC) {
         advance();
@@ -597,7 +627,7 @@ static TokenType parseAtom(void) {
             uint16_t slot = resolve(current().value);
             
             emit(OP_LOAD); // takes from slot given and return into top
-            emit16((uint16_t)slot); // put slot into mem
+            emit64((uint64_t)slot); // put slot into mem
 
             TokenType type = resolveType(current().value);
             advance();
@@ -669,14 +699,14 @@ static void parseAssign(void) {
     logBuildParser("Parsing assignment");
 
     char *name = current().value;
-    uint16_t slot = resolve(name);
+    uint64_t slot = resolve(name);
 
     expectAndPass(EQUALS);
 
     parseExpressionTC(resolveType(name));
 
     emit(OP_STORE);
-    emit16(slot);
+    emit64(slot);
 
     expectCurrent(SEMICOLON);
 }
@@ -702,16 +732,24 @@ static void parseVarDecl(void) {
     expect(IDENTIFIER);
 
     char *name = current().value;
-    uint16_t slot = define(name, aim);
+    uint64_t slot = define(name, aim);
 
     expectAndPass(EQUALS);
 
     parseExpressionTC(aim);
 
     emit(OP_STORE);
-    emit16(slot);    
+    emit64(slot);    
 
     expectCurrent(SEMICOLON);
+}
+
+/// @brief Parses a variable definition and assignment. 
+static void parseDynamicVar(void) {
+    char *name = current().value;
+    if (exists(name)) {
+        
+    }
 }
 
 /// @brief Parses a native function.
@@ -1079,7 +1117,7 @@ ByteCodeResult parse(TokenStream *ts, char *currentFileName) {
 
     // Entry Point
     emit(OP_CALL);
-    emit32((int32_t)(resolvef("main") - (b->byteIndex + 4)));
+    emit64((int64_t)(resolvef("main") - (b->byteIndex + 8)));
 
     logBuildParser("Reached EOF");
 

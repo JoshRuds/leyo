@@ -15,7 +15,7 @@
 /// @brief A global object - contains a slot for where in the global array it is.
 typedef struct {
     char *name;
-    uint16_t slot;
+    uint64_t slot;
     TokenType type;
 } Global;
 
@@ -45,7 +45,7 @@ typedef struct {
 /// @brief Descibes a function to be stored.
 typedef struct {
     char *name;
-    uint32_t address;
+    uint64_t address;
     TokenType retType;
     // todo add args 
 } Func;
@@ -58,8 +58,8 @@ typedef struct {
     uint32_t count;
 
     uint8_t *bytebuff;
-    uint32_t byteIndex;
-    uint32_t byteCap;
+    uint64_t byteIndex;
+    uint64_t byteCap;
 
     Global globals[65535];
     int globalCount;
