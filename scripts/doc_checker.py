@@ -469,11 +469,11 @@ def check_file(source_path: Path):
         )
         return [], []
 
-    lines = original_text.splitlines()
+    all_lines = original_text.splitlines()
 
-    for i, line in enumerate(lines):
+    for i, line in enumerate(all_lines):
         line = line.strip()
-        if line.startswith("///") and not line.endswith(".") and not line.startswith("/// @file") :
+        if line.startswith("///") and not line.endswith(".") and not line.startswith("/// @file") and all_lines[i+1].startswith('/// @'):
             errors.append(
                 f"{source_path}:{i+1}: "
                 f"No ending full stop."

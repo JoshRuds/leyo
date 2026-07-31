@@ -655,6 +655,7 @@ static void power(void) {
     }
 }
 
+/// @brief Cleans the VM dynamicly allocated objects up and frees them.
 static void freeAll(void) {
     freeConstPool(vmStd.consts, vmStd.constCount);
     free(vmStd.stack);
