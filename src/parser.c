@@ -71,7 +71,7 @@ static Token previous(void) {
 /// @brief Get the next token.
 /// @return The token at the next parser position.
 static Token peek(void) {
-    if (b->count+1>=b->pos) {
+    if (b->pos+1>=b->count) {
         logBuildParser("Too far - peeked into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
@@ -81,7 +81,7 @@ static Token peek(void) {
 /// @brief Get the token 2 ahead.
 /// @return The token at the parser position + 2.
 static Token peek2(void) {
-    if (b->count+2>=b->pos) {
+    if (b->pos+2>=b->count) {
         logBuildParser("Too far - peeked into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
@@ -90,7 +90,7 @@ static Token peek2(void) {
 
 /// @brief Move the parser position on by one.
 static void advance(void) {
-    if (b->count+1>=b->pos) {
+    if (b->pos+1>=b->count) {
         logBuildParser("Too far - advanced into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
@@ -695,6 +695,8 @@ static void parseExpressionTC(TokenType aim) {
 }
 
 /// @brief Parses a variable assignment.
+/// @deprecated Now replaced by @c parseDynamicVar() which handles both
+/// assignments and var declarations.
 static void parseAssign(void) {
     logBuildParser("Parsing assignment");
 
@@ -712,6 +714,8 @@ static void parseAssign(void) {
 }
 
 /// @brief Parses a variable declaration.
+/// @deprecated Now replaced by @c parseDynamicVar() which handles both
+/// assignments and var declarations.
 static void parseVarDecl(void) {
     logBuildParser("Parsing variable declaration");
 
@@ -746,10 +750,28 @@ static void parseVarDecl(void) {
 
 /// @brief Parses a variable definition and assignment. 
 static void parseDynamicVar(void) {
+    uint64_t slot;
+
     char *name = current().value;
-    if (exists(name)) {
+
+    if (exists(name)) { // assignment
+        slot = resolve(name);
+
+        expectAndPass(EQUALS);
+
+        parseExpressionTC(resolveType(name));
+
+    } else { // var decl - infer type
+        expectAndPass(EQUALS);
         
+        TokenType type = parseExpression();
+
+        slot = define(name, type);
     }
+
+    emit(OP_STORE);
+    emit64(slot);
+    expectCurrent(SEMICOLON);
 }
 
 /// @brief Parses a native function.
@@ -1034,20 +1056,13 @@ static void parseStatement(void) {
 
         case IDENTIFIER: {
 
-            // type keywords OR variable name
-            if (strcmp(current().value, "int") == 0 ||
-                strcmp(current().value, "str") == 0 ||
-                strcmp(current().value, "flt") == 0 ||
-                strcmp(current().value, "chr") == 0) {
-
-                parseVarDecl();
-            } else if (strcmp(current().value, "fnc") == 0) {
+            if (strcmp(current().value, "fnc") == 0) {
                 parseFunction();
             } else if (strcmp(current().value, "use") == 0) {
                 advance();
                 parseModule();
             } else if (peek().type == EQUALS) {
-                parseAssign();
+                parseDynamicVar();
             } else if (peek().type == OPENBRAC) {
                 functionCall(false);
                 consumeStatementTerminator("Function call");

@@ -223,6 +223,15 @@ static uint32_t read32(void) {
     return low | (high << 16);
 }
 
+/// @brief Get the current eight bytes in the bytecode.
+/// @return The current eight bytes.
+static uint32_t read64(void) {
+    uint32_t low = read32();
+    uint32_t high = read32();
+
+    return low | (high << 32);
+}
+
 /// @brief Decodes the constant pool from bytes to a Value array.
 /// @param data The bytes to decode.
 /// @param length The length of @p data bytes.
