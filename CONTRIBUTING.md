@@ -12,15 +12,10 @@ Thanks for helping improve Leyo. This project is still evolving, so the most use
 
 ```bash
 make
-./bin/leyo.exe build test.leyo
-./bin/leyo.exe run a.lybc
-./bin/leyo.exe disassemble a.lybc --head
-```
-
-On Windows, you can also run the smoke test script:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1
+leyo build test.leyo
+leyo run a.lybc
+leyo disassemble a.lybc --head
+leyo test
 ```
 
 If you change the CLI or file format, verify both `build` and `run`. A parser-only change can still break the VM if the emitted bytecode changes.

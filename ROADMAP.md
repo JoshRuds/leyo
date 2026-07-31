@@ -1,6 +1,6 @@
 # Leyo Roadmap
 
-Leyo is a simple alternative to systems languages like C and Rust that should be
+Leyo is a simple alternative to systems languages (like C and Rust) and it should be
 safe and easy. 
 
 ## Requirements
