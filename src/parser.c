@@ -43,75 +43,6 @@ typedef enum {
 // HOISTS
 static void parseStatement(void);
 
-/// @brief Checks to ensure the byte buffer is large enough, else it re-allocates double memory for it.
-static void checkByteBuff(void) {
-    logBuildParser("Checking ByteBuff Size");
-    if (b->byteIndex >= b->byteCap - 1) {
-        logBuildParser("Doubling ByteBuff Capacity");
-        b->byteCap = b->byteCap * 2;
-        b->bytebuff = realloc(b->bytebuff, b->byteCap * sizeof(uint8_t));
-    }
-}
-
-/// @brief Checks to ensure the const buffer is large enough, else it re-allocates double memory for it.
-/// @note Do not confuse with @c checkConstBuff() which has an extra 'f' - the const buf is what gets given to the
-/// VM, const buf**f** is internal only and belongs to @c b-> bytecoder object.
-static bool checkConstBuf(size_t needed) {
-    if (needed <= constBuf.capacity)
-        return true;
-
-    size_t newCap = constBuf.capacity * 2;
-
-    while (newCap < needed)
-        newCap *= 2;
-
-    uint8_t *newData = realloc(constBuf.data, newCap);
-
-    if (!newData) {
-        lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
-        return false;
-    }
-
-    constBuf.data = newData;
-    constBuf.capacity = newCap;
-
-    return true;
-}
-
-/// @brief Checks to ensure the const buffer is large enough, else it re-allocates double memory for it.
-/// @note Do not confuse with @c checkConstBuf() which has an one less 'f' - the const buf is what gets given to the
-/// VM, const buf**f** is internal only and belongs to @c b-> object.
-static void checkConstBuff(void) {
-    if (b->constAmt >= b->constCap) {
-        size_t newCap = b->constCap * 2;
-
-        Value *newConsts = realloc(b->consts, newCap * sizeof(Value));
-        if (newConsts == NULL) {
-            lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
-            return;
-        }
-
-        b->consts = newConsts;
-        b->constCap = newCap;
-    }
-}
-
-/// @brief Checks to ensure the global buffer is large enough, else it re-allocates double memory for it.
-static void checkGlobalBuff(void) {
-    if (b->globalCount >= b->globalCap-1) {
-        size_t newCap = b->globalCap * 2;
-
-        Global *newGlobals = realloc(b->globals, newCap * sizeof(Global));
-        if (newGlobals == NULL) {
-            lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
-            return;
-        }
-
-        b->globals = newGlobals;
-        b->globalCap = newCap;
-    }
-}
-
 /// @brief Get the current token.
 /// @return The token at the current parser position.
 static Token current(void) {
@@ -131,7 +62,7 @@ static Token previous(void) {
 /// @brief Get the next token.
 /// @return The token at the next parser position.
 static Token peek(void) {
-    if (b->count+1>=b->pos) {
+    if (b->pos+1>=b->count) {
         logBuildParser("Too far - peeked into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
@@ -141,7 +72,7 @@ static Token peek(void) {
 /// @brief Get the token 2 ahead.
 /// @return The token at the parser position + 2.
 static Token peek2(void) {
-    if (b->count+2>=b->pos) {
+    if (b->pos+2>=b->count) {
         logBuildParser("Too far - peeked into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
@@ -150,7 +81,7 @@ static Token peek2(void) {
 
 /// @brief Move the parser position on by one.
 static void advance(void) {
-    if (b->count+1>=b->pos) {
+    if (b->pos+1>=b->count) {
         logBuildParser("Too far - advanced into eos");
         lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
     }
@@ -198,6 +129,20 @@ static void expectAndPass(TokenType type) {
         }
     }
     advance();
+}
+
+/// @brief Checks to ensure the byte buffer is large enough, else it re-allocates double memory for it.
+static void checkByteBuff(void) {
+    logBuildParser("Checking ByteBuff Size");
+    if (b->byteIndex >= b->byteCap - 1) {
+        logBuildParser("Doubling ByteBuff Capacity");
+        b->byteCap = b->byteCap * 2;
+        b->bytebuff = realloc(b->bytebuff, b->byteCap * sizeof(uint8_t));
+        if (b->bytebuff == NULL) {
+            lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
+            return;
+        }
+    }
 }
 
 /// @brief Appends the one-byte value to the byte-buffer.
@@ -250,6 +195,31 @@ static void patch32(uint32_t loc, uint32_t value) {
     b->bytebuff[loc+1] = (uint8_t)((value >> 8) & 0xFF);
     b->bytebuff[loc+2] = (uint8_t)((value >> 16) & 0xFF);
     b->bytebuff[loc+3] = (uint8_t)((value >> 24) & 0xFF);
+}
+
+/// @brief Checks to ensure the const buffer is large enough, else it re-allocates double memory for it.
+/// @note Do not confuse with @c checkConstBuff() which has an extra 'f' - the const buf is what gets given to the
+/// VM, const buf**f** is internal only and belongs to @c b-> bytecoder object.
+static bool checkConstBuf(size_t needed) {
+    if (needed <= constBuf.capacity)
+        return true;
+
+    size_t newCap = constBuf.capacity * 2;
+
+    while (newCap < needed)
+        newCap *= 2;
+
+    uint8_t *newData = realloc(constBuf.data, newCap);
+
+    if (!newData) {
+        lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
+        return false;
+    }
+
+    constBuf.data = newData;
+    constBuf.capacity = newCap;
+
+    return true;
 }
 
 /// @brief Emits a byte to the const buffer.
@@ -384,6 +354,24 @@ static bool checkConstDuplicate(Value v, uint64_t *loc) {
     return false;
 }
 
+/// @brief Checks to ensure the const buffer is large enough, else it re-allocates double memory for it.
+/// @note Do not confuse with @c checkConstBuf() which has an one less 'f' - the const buf is what gets given to the
+/// VM, const buf**f** is internal only and belongs to @c b-> object.
+static void checkConstBuff(void) {
+    if (b->constAmt >= b->constCap) {
+        size_t newCap = b->constCap * 2;
+
+        Value *newConsts = realloc(b->consts, newCap * sizeof(Value));
+        if (newConsts == NULL) {
+            lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
+            return;
+        }
+
+        b->consts = newConsts;
+        b->constCap = newCap;
+    }
+}
+
 /// @brief Emits a constant to the const pool and returns its slot.
 /// @return The slot at which the const is set at.
 static uint64_t emitConst(void) {
@@ -424,6 +412,22 @@ static uint64_t emitConst(void) {
     return b->constAmt-1;
 }
 
+/// @brief Checks to ensure the global buffer is large enough, else it re-allocates double memory for it.
+static void checkGlobalBuff(void) {
+    if (b->globalCount >= b->globalCap-1) {
+        size_t newCap = b->globalCap * 2;
+
+        Global *newGlobals = realloc(b->globals, newCap * sizeof(Global));
+        if (newGlobals == NULL) {
+            lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
+            return;
+        }
+
+        b->globals = newGlobals;
+        b->globalCap = newCap;
+    }
+}
+
 /// @brief Checks if the given string is a known keyword.
 /// @param tc The string to check.
 /// @return Bool - true if is keyword, else false.
@@ -449,28 +453,27 @@ static bool isKeyword(char *tc) {
 /// @param name Name to check.
 /// @param noRaise Defines if the helper should raise errors if not valid.
 /// @return Bool - true if not valid, else false.
-static bool isNameNotValid(const char *name, bool noRaise) {
+static bool isNameNotValid(char *name, bool noRaise) {
     bool res = isKeyword(name);
     if (res) 
         return res;
 
-    for (int i = 0; i < b->globalCount; i++) {
+    for (uint64_t i = 0; i < b->globalCount; i++) {
         if (!b->globals[i].name || !name) {
-            //printf("NULL name detected\n");
             continue;
         }
 
         if (strcmp(b->globals[i].name, name) == 0) {
-            lraise(WF_BUILD, ERR_PARSER_VAR_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
+            if (!noRaise)
+                lraise(WF_BUILD, ERR_PARSER_VAR_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
             return true;
-            // return b->globals[i].slot;
         }
     }
     for (int i = 0; i < b->funcAmt; i++) {
         if (strcmp(b->funcs[i].name, name) == 0) {
-            lraise(WF_BUILD, ERR_PARSER_FUNC_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
+            if (!noRaise)
+                lraise(WF_BUILD, ERR_PARSER_FUNC_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
             return true;
-            // return b->funcs[i].address;
         }
     }
 
@@ -481,17 +484,17 @@ static bool isNameNotValid(const char *name, bool noRaise) {
 /// @param name Name of the variable.
 /// @param type Type of the variable.
 /// @return The slot in the variable table.
-static int define(const char *name, TokenType type) {
+static int define(char *name, TokenType type) {
     if (isNameNotValid(name, false))
         return -1;
+
+    checkGlobalBuff();
 
     int slot = b->globalCount++;
 
     b->globals[slot].name = strdup(name);
     b->globals[slot].slot = slot;
     b->globals[slot].type = type;
-
-    //printf("fini\n");
 
     return slot;
 }
@@ -500,7 +503,7 @@ static int define(const char *name, TokenType type) {
 /// @param name Name of the function.
 /// @param type Type of the function.
 /// @return The slot in the function table.
-static uint32_t definef(const char *name, TokenType ret) {
+static uint32_t definef(char *name, TokenType ret) {
     if (isNameNotValid(name, false))
         return -1;
 
@@ -519,7 +522,7 @@ static uint32_t definef(const char *name, TokenType ret) {
 /// @param name Name of the variable.
 /// @return The slot in the varibale table.
 static int resolve(char *name) {
-    for (int i = 0; i < b->globalCount; i++) {
+    for (uint64_t i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
             return b->globals[i].slot;
         }
@@ -552,7 +555,7 @@ static uint32_t resolvef(char *name) {
 /// @param name Name of the variable.
 /// @return The type in the varibale table.
 static TokenType resolveType(char *name) {
-    for (int i = 0; i < b->globalCount; i++) {
+    for (uint64_t i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
             return b->globals[i].type;
         }
@@ -816,7 +819,7 @@ static void parseFuncBody(TokenType retType) {
 
         uint32_t before = b->pos;
 
-        // RETURN HANDLING (no hacks, no eat)
+        // RETURN HANDLING
         if (strcmp(current().value, "rtn") == 0) {
             has_ret = true;
             advance();

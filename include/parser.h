@@ -63,12 +63,12 @@ typedef struct {
     uint32_t byteCap;
 
     Global *globals;
-    int globalCount;
-    int globalCap;
+    uint64_t globalCount;
+    uint64_t globalCap;
 
     Value *consts;
-    int constAmt;
-    int constCap;
+    uint64_t constAmt;
+    uint64_t constCap;
 
     Func *funcs;
     int funcAmt;

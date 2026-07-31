@@ -10,5 +10,5 @@
 
 #ifndef VERSION_H
 #define VERSION_H
-#define LEYO_VERSION "0.12.0"
+#define LEYO_VERSION "0.12.1"
 #endif
