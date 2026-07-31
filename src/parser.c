@@ -40,7 +40,7 @@ typedef enum {
 } VarType;
 
 
-// HOISTS
+// HOIST
 static void parseStatement(void);
 
 /// @brief Get the current token.
@@ -146,7 +146,7 @@ static void checkByteBuff(void) {
 }
 
 /// @brief Appends the one-byte value to the byte-buffer.
-/// @param value The byte to append.xs
+/// @param value The byte to append.
 static void emit(uint8_t value) {
     checkByteBuff();
     if (b->byteIndex >= b->byteCap) {
