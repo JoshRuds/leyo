@@ -1,0 +1,1234 @@
+/*
+ * Copyright (c) 2026 Leyo Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/// @file parser.c
+/// @brief The parser.
+
+#include "../include/type.h"
+#include "../include/parser.h"
+#include "../include/lexer.h"
+#include "../include/errors.h"
+#include "../include/codes.h"
+#include "../include/bytecode.h"
+#include "../include/native.h"
+#include <ctype.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+// #include <assert.h>
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
+bool inStd = false;
+
+ConstBuffer constBuf = {0};
+
+ByteCoder bytecoder = {0};
+ByteCoder *b;
+
+typedef enum {
+    TYPE_INT,
+    TYPE_FLOAT,
+    TYPE_STRING,
+    TYPE_CHAR,
+    TYPE_UNKNOWN
+} VarType;
+
+
+// HOIST
+static void parseStatement(void);
+
+/// @brief Get the current token.
+/// @return The token at the current parser position.
+static Token current(void) {
+    return b->tokens[b->pos];
+}
+
+/// @brief Get the previous token.
+/// @return The token at the previous parser position.
+static Token previous(void) {
+    if (b->count-1<=b->pos) {
+        logBuildParser("Too far - previoused into eos");
+        lraise(WF_BUILD, ERR_PARSER_INTO_STARTOFSTREAM, current().line, current().collumn, b->currentFileName);
+    }
+    return b->tokens[b->pos-1];
+}
+
+/// @brief Get the next token.
+/// @return The token at the next parser position.
+static Token peek(void) {
+    if (b->pos+1>=b->count) {
+        logBuildParser("Too far - peeked into eos");
+        lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
+    }
+    return b->tokens[b->pos+1];
+}
+
+/// @brief Get the token 2 ahead.
+/// @return The token at the parser position + 2.
+static Token peek2(void) {
+    if (b->pos+2>=b->count) {
+        logBuildParser("Too far - peeked into eos");
+        lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
+    }
+    return b->tokens[b->pos+2];
+}
+
+/// @brief Move the parser position on by one.
+static void advance(void) {
+    if (b->pos+1>=b->count) {
+        logBuildParser("Too far - advanced into eos");
+        lraise(WF_BUILD, ERR_PARSER_INTO_ENDOFSTREAM, current().line, current().collumn, b->currentFileName);
+    }
+    b->pos++;
+}
+
+/// @brief Expect the current value to be the given type, and move past it.
+/// @param type The type to expect.
+static void expectCurrent(TokenType type) {
+    if (type != current().type) {
+        logBuildParser("Expect failed (current mismatch)");
+        if (type == SEMICOLON) {
+            lraise(WF_BUILD, ERR_PARSER_NO_SEMICOLON, current().line, current().collumn, b->currentFileName);
+        } else {
+            lraise(WF_BUILD, ERR_PARSER_EXPECTED_TOKEN, current().line, current().collumn, b->currentFileName);
+        }
+    }
+    advance();
+}
+
+/// @brief Expect the next value to be the given type, and move onto it.
+/// @param type The type to expect.
+static void expect(TokenType type) {
+    if (type != peek().type) {
+        logBuildParser("Expect failed (peek mismatch)");
+        if (type == SEMICOLON) {
+            lraise(WF_BUILD, ERR_PARSER_NO_SEMICOLON, current().line, current().collumn, b->currentFileName);
+        } else {
+            lraise(WF_BUILD, ERR_PARSER_EXPECTED_TOKEN, current().line, current().collumn, b->currentFileName);
+        }
+    }
+    advance();
+}
+
+/// @brief Expect the next value to be the given type, and skip it. 
+/// @param type The type to expect.
+static void expectAndPass(TokenType type) {
+    advance();
+    if (type != current().type) {
+        logBuildParser("ExpectAndPass failed");
+        if (type == SEMICOLON) {
+            lraise(WF_BUILD, ERR_PARSER_NO_SEMICOLON, current().line, current().collumn, b->currentFileName);
+        } else {
+            lraise(WF_BUILD, ERR_PARSER_EXPECTED_TOKEN, current().line, current().collumn, b->currentFileName);
+        }
+    }
+    advance();
+}
+
+/// @brief Checks to ensure the byte buffer is large enough, else it re-allocates double memory for it.
+static void checkByteBuff(void) {
+    logBuildParser("Checking ByteBuff Size");
+    if (b->byteIndex >= b->byteCap - 1) {
+        logBuildParser("Doubling ByteBuff Capacity");
+        b->byteCap = b->byteCap * 2;
+        b->bytebuff = realloc(b->bytebuff, b->byteCap * sizeof(uint8_t));
+        if (b->bytebuff == NULL) {
+            lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
+            return;
+        }
+    }
+}
+
+/// @brief Appends the one-byte value to the byte-buffer.
+/// @param value The byte to append.
+static void emit(uint8_t value) {
+    checkByteBuff();
+    if (b->byteIndex >= b->byteCap) {
+        logBuildParser("Byte buffer overflow detected");
+        lraise(WF_BUILD, ERR_PARSER_BYTE_OVERFLOW, current().line, current().collumn, b->currentFileName);
+    }
+
+    b->bytebuff[b->byteIndex++] = value;
+}
+
+/// @brief Appends the two-byte value to the byte-buffer.
+/// @param value The two bytes to append.
+static void emit16(uint16_t value) {
+    emit((uint8_t)(value & 0xFF));
+    emit((uint8_t)((value >> 8) & 0xFF));
+}
+
+/// @brief Appends the four-byte value to the byte-buffer.
+/// @param value The four bytes to append.
+static void emit32(uint32_t value) {
+    emit((uint8_t)(value & 0xFF));
+    emit((uint8_t)((value >> 8) & 0xFF));
+    emit((uint8_t)((value >> 16) & 0xFF));
+    emit((uint8_t)((value >> 24) & 0xFF));
+}
+
+/// @brief Emits a empty four-byte slot.
+/// @return The location.
+static uint32_t reserve32(void) {
+    uint32_t pos = b->byteIndex;
+    emit32(0);
+    return pos;
+}
+
+/// @brief Emits four-bytes at the given slot.
+/// @param loc Where to emit.
+/// @param value The four-byte value to emit.
+static void patch32(uint32_t loc, uint32_t value) {
+    if (loc + 3 >= b->byteIndex) {
+        logBuildParser("Invalid patch location");
+        lraise(WF_BUILD, ERR_PARSER_OUT_OF_BOUNDS, current().line, current().collumn, b->currentFileName);
+        return;
+    }
+
+    b->bytebuff[loc+0] = (uint8_t)(value & 0xFF);
+    b->bytebuff[loc+1] = (uint8_t)((value >> 8) & 0xFF);
+    b->bytebuff[loc+2] = (uint8_t)((value >> 16) & 0xFF);
+    b->bytebuff[loc+3] = (uint8_t)((value >> 24) & 0xFF);
+}
+
+/// @brief Checks to ensure the const buffer is large enough, else it re-allocates double memory for it.
+/// @note Do not confuse with @c checkConstBuff() which has an extra 'f' - the const buf is what gets given to the
+/// VM, const buf**f** is internal only and belongs to @c b-> bytecoder object.
+static bool checkConstBuf(size_t needed) {
+    if (needed <= constBuf.capacity)
+        return true;
+
+    size_t newCap = constBuf.capacity * 2;
+
+    while (newCap < needed)
+        newCap *= 2;
+
+    uint8_t *newData = realloc(constBuf.data, newCap);
+
+    if (!newData) {
+        lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
+        return false;
+    }
+
+    constBuf.data = newData;
+    constBuf.capacity = newCap;
+
+    return true;
+}
+
+/// @brief Emits a byte to the const buffer.
+/// @param v The byte to emit.
+static void constEmit(uint8_t v) {
+    checkConstBuf(constBuf.length + 1);
+    constBuf.data[constBuf.length++] = v;
+}
+
+/// @brief Adds a name to the module list.
+/// @param name The name of the module.
+/// @note No side effects - just adds a string to a register.
+static void addModule(const char *name) {
+    if (b->moduleAmt == b->moduleCap) {
+        b->moduleCap *= 2;
+        b->modulesLoaded = realloc(
+            b->modulesLoaded,
+            sizeof(char *) * b->moduleCap
+        );
+    }
+
+    b->modulesLoaded[b->moduleAmt++] = strdup(name);
+}
+
+/// @brief Checks if a name is in the module list.
+/// @param name The name to check.
+/// @return Bool - true if it is in the register, else false. 
+static bool isModuleLoaded(const char *name) {
+    for (int i = 0; i < b->moduleAmt; i++) {
+        if (strcmp(b->modulesLoaded[i], name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// @brief Checks current value against known types.
+/// @return The type of the current value.
+static TokenType getTypeVar(void) {
+    if (strcmp(current().value, "int") == 0) {return NUMBER;}
+    if (strcmp(current().value, "str") == 0) {return STRING;}
+    if (strcmp(current().value, "flt") == 0) {return FLT;}
+    if (strcmp(current().value, "chr") == 0) {return CHR;}
+//    if (strcmp(current().value, "nul") == 0) {return NUL;}
+    return UNKNOWN;
+} 
+
+/// @brief Append current value to the result constant list.
+/// @param v The value to append.
+static void serializeValue(Value *v) {
+    constEmit((uint8_t)v->flag);
+    checkConstBuf(constBuf.length + 1);
+
+    switch (v->flag) {
+        case VAL_INT: {
+            int x = v->as.i;
+            memcpy(&constBuf.data[constBuf.length], &x, sizeof(x));
+            constBuf.length += sizeof(x);
+            break;
+        }
+
+        case VAL_FLOAT: {
+            double x = v->as.f;
+            memcpy(&constBuf.data[constBuf.length], &x, sizeof(x));
+            constBuf.length += sizeof(x);
+            break;
+        }
+
+        case VAL_CHAR:
+            constEmit((uint8_t)v->as.c);
+            break;
+
+        case VAL_STR: {
+            uint16_t len = strlen(v->as.s);
+
+            memcpy(&constBuf.data[constBuf.length], &len, sizeof(len));
+            constBuf.length += sizeof(len);
+
+            memcpy(&constBuf.data[constBuf.length], v->as.s, len);
+            constBuf.length += len;
+            break;
+        }
+    }
+}
+
+/// @brief Checks if const was previously set.
+/// @param v The value.
+/// @param loc Set to the location if @p v is a duplicate.
+/// @return Bool - true if const is duplicate, else false.
+static bool checkConstDuplicate(Value v, uint64_t *loc) {
+    for (uint64_t i = 0; i < b->constAmt; i++) {
+        Value c = b->consts[i];
+
+        if (v.flag != c.flag)
+            continue;
+
+        switch (v.flag) {
+            case VAL_CHAR:
+                if (v.as.c == c.as.c) {
+                    *loc = i;
+                    return true;
+                }
+                break;
+
+            case VAL_FLOAT:
+                if (v.as.f == c.as.f) {
+                    *loc = i;
+                    return true;
+                }
+                break;
+
+            case VAL_INT:
+                if (v.as.i == c.as.i) {
+                    *loc = i;
+                    return true;
+                }
+                break;
+
+            case VAL_STR:
+                if (strcmp(v.as.s, c.as.s) == 0) {
+                    *loc = i;
+                    return true;
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    *loc = 0;
+    return false;
+}
+
+/// @brief Checks to ensure the const buffer is large enough, else it re-allocates double memory for it.
+/// @note Do not confuse with @c checkConstBuf() which has an one less 'f' - the const buf is what gets given to the
+/// VM, const buf**f** is internal only and belongs to @c b-> object.
+static void checkConstBuff(void) {
+    if (b->constAmt >= b->constCap) {
+        size_t newCap = b->constCap * 2;
+
+        Value *newConsts = realloc(b->consts, newCap * sizeof(Value));
+        if (newConsts == NULL) {
+            lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
+            return;
+        }
+
+        b->consts = newConsts;
+        b->constCap = newCap;
+    }
+}
+
+/// @brief Emits a constant to the const pool and returns its slot.
+/// @return The slot at which the const is set at.
+static uint64_t emitConst(void) {
+    Value v = {0};
+    switch (current().type) {
+        case CHR:
+            v.as.c = current().value[0];
+            v.flag = VAL_CHAR;
+            break;
+
+        case NUMBER:
+            v.as.i = atoi(current().value);
+            v.flag = VAL_INT;
+            break;
+
+        case FLT:
+            v.as.f = atof(current().value);
+            v.flag = VAL_FLOAT;
+            break;
+
+        case STRING:
+            v.as.s = current().value;
+            v.flag = VAL_STR;
+            break;
+
+        default:
+            break;
+    }
+
+    uint64_t loc;
+    if (checkConstDuplicate(v, &loc)) {
+        return loc;
+    }
+
+    serializeValue(&v);
+    checkConstBuff();
+    b->consts[b->constAmt++] = v;
+    return b->constAmt-1;
+}
+
+/// @brief Checks to ensure the global buffer is large enough, else it re-allocates double memory for it.
+static void checkGlobalBuff(void) {
+    if (b->globalCount >= b->globalCap-1) {
+        size_t newCap = b->globalCap * 2;
+
+        Global *newGlobals = realloc(b->globals, newCap * sizeof(Global));
+        if (newGlobals == NULL) {
+            lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, current().line, current().collumn, b->currentFileName);
+            return;
+        }
+
+        b->globals = newGlobals;
+        b->globalCap = newCap;
+    }
+}
+
+/// @brief Checks if the given string is a known keyword.
+/// @param tc The string to check.
+/// @return Bool - true if is keyword, else false.
+static bool isKeyword(char *tc) {
+    char *keywords[] = {
+        "int", "chr", "str", "flt", "arr",
+        "rtn", "fnc", "whl", "rpt", "brk", "cnt"
+    };
+
+    int keywordAmt = sizeof(keywords) / sizeof(keywords[0]);
+
+    for (int i = 0; i < keywordAmt; i++) {
+        if (strcmp(keywords[i], tc) == 0) {
+            lraise(WF_BUILD, ERR_PARSER_CANNOT_SHADOW_KW, current().line, current().collumn, b->currentFileName);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/// @brief Checks if name is valid against other defined and keywords.
+/// @param name Name to check.
+/// @param noRaise Defines if the helper should raise errors if not valid.
+/// @return Bool - true if not valid, else false.
+static bool isNameNotValid(char *name, bool noRaise) {
+    bool res = isKeyword(name);
+    if (res) 
+        return res;
+
+    for (uint64_t i = 0; i < b->globalCount; i++) {
+        if (!b->globals[i].name || !name) {
+            continue;
+        }
+
+        if (strcmp(b->globals[i].name, name) == 0) {
+            if (!noRaise)
+                lraise(WF_BUILD, ERR_PARSER_VAR_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
+            return true;
+        }
+    }
+    for (int i = 0; i < b->funcAmt; i++) {
+        if (strcmp(b->funcs[i].name, name) == 0) {
+            if (!noRaise)
+                lraise(WF_BUILD, ERR_PARSER_FUNC_PERVIOUSLY_DEFINED, current().line, current().collumn, b->currentFileName);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/// @brief Defines a variable to be tracked.
+/// @param name Name of the variable.
+/// @param type Type of the variable.
+/// @return The slot in the variable table.
+static int define(char *name, TokenType type) {
+    if (isNameNotValid(name, false))
+        return -1;
+
+    checkGlobalBuff();
+
+    int slot = b->globalCount++;
+
+    b->globals[slot].name = strdup(name);
+    b->globals[slot].slot = slot;
+    b->globals[slot].type = type;
+
+    return slot;
+}
+
+/// @brief Defines a function to be tracked.
+/// @param name Name of the function.
+/// @param type Type of the function.
+/// @return The slot in the function table.
+static uint32_t definef(char *name, TokenType ret) {
+    if (isNameNotValid(name, false))
+        return -1;
+
+    b->funcs[b->funcAmt].name = strdup(name);
+    b->funcs[b->funcAmt].address = b->byteIndex;
+    b->funcs[b->funcAmt].retType = ret;
+    b->funcAmt++;
+
+    logBuildParser("Registered Func With Name: ");
+    logBuildParser(name);
+
+    return b->funcAmt-1;
+}
+
+/// @brief Returns the slot of a tracked variable.
+/// @param name Name of the variable.
+/// @return The slot in the varibale table.
+static int resolve(char *name) {
+    for (uint64_t i = 0; i < b->globalCount; i++) {
+        if (strcmp(b->globals[i].name, name) == 0) {
+            return b->globals[i].slot;
+        }
+    }
+
+    lraise(WF_BUILD, ERR_PARSER_VAR_NOT_DEFINED, current().line, current().collumn, b->currentFileName);
+    return 0;
+}
+
+/// @brief Returns the slot of a tracked function.
+/// @param name Name of the function.
+/// @return The slot in the function table.
+static uint32_t resolvef(char *name) {
+    for (int i = 0; i < b->funcAmt; i++) {
+        if (strcmp(b->funcs[i].name, name) == 0) {
+            return b->funcs[i].address;
+        }
+    }
+
+    if (strcmp(name, "main") == 0) {
+        lraise(WF_BUILD, ERR_PARSER_NO_ENTRY_POINT, current().line, current().collumn, b->currentFileName);
+        return -1;
+    }
+
+    lraise(WF_BUILD, ERR_PARSER_FUNC_NOT_DEFINED, current().line, current().collumn, b->currentFileName);
+    return -1;
+}
+
+/// @brief Returns the type of a tracked variable.
+/// @param name Name of the variable.
+/// @return The type in the varibale table.
+static TokenType resolveType(char *name) {
+    for (uint64_t i = 0; i < b->globalCount; i++) {
+        if (strcmp(b->globals[i].name, name) == 0) {
+            return b->globals[i].type;
+        }
+    }
+
+    lraise(WF_BUILD, ERR_PARSER_VAR_NOT_DEFINED, current().line, current().collumn, b->currentFileName);
+    return UNKNOWN;
+}
+
+/// @brief Returns the type of a tracked function.
+/// @param name Name of the function.
+/// @return The type in the function table.
+static TokenType resolveTypef(char *name) {
+    for (int i = 0; i < b->funcAmt; i++) {
+        if (strcmp(b->funcs[i].name, name) == 0) {
+            return b->funcs[i].retType;
+        }
+    }
+
+    lraise(WF_BUILD, ERR_PARSER_FUNC_NOT_DEFINED, current().line, current().collumn, b->currentFileName);
+    return UNKNOWN;
+}
+
+/// @brief Parses a function call.
+/// @param isModuleFunction Defines if the function belongs in a module.
+/// @return The function's return type.
+static TokenType functionCall(bool isModuleFunction) {
+    char *cv = current().value;
+    char name[1024];
+    if (isModuleFunction) {
+        expectAndPass(COLON);
+        expectCurrent(COLON);
+        snprintf(name, sizeof(name), "%s::%s", cv, current().value);
+    } else {
+        snprintf(name, sizeof(name), "%s", cv);
+    }
+    logBuildParser("atom is ident func");
+    emit(OP_CALL);
+    emit32((int32_t)(resolvef(name) - (b->byteIndex + 4)));
+    expectAndPass(OPENBRAC);
+    while (current().type != CLOSEBRAC) {
+        advance();
+    }
+    TokenType type = resolveTypef(name);
+    advance();
+
+    return type;
+}
+
+/// @brief Consumes the end semicolon.
+/// @param ctx The statement type.
+static void consumeStatementTerminator(const char *ctx) {
+    if (current().type != SEMICOLON) {
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer), "%s: expected ';'", ctx ? ctx : "Statement");
+        logBuildParser(buffer);
+        lraise(WF_BUILD, ERR_PARSER_NO_SEMICOLON, current().line, current().collumn, b->currentFileName);
+        return;
+    }
+
+    advance();
+}
+
+/// @brief Parses an atom.
+/// @return The type of atom.
+/// @note Atom: small singular unit of expression (number, identifier, string, etc).
+static TokenType parseAtom(void) {
+    logBuildParser("Parsing atom");
+
+    switch (current().type) {
+        case NUMBER: {
+            logBuildParser("atom is number");
+            emit(OP_CONST_LOAD);
+            emit16((uint16_t)emitConst());
+    
+            break;
+        }
+
+        case CHR: {
+            logBuildParser("atom is char");
+            emit(OP_CONST_LOAD);
+            emit16((uint16_t)emitConst());
+    
+            break;
+        }
+
+        case STRING: {
+            logBuildParser("atom is string");
+            emit(OP_CONST_LOAD);
+            emit16((uint16_t)emitConst());
+    
+            break;
+        }
+
+        case FLT: {
+            logBuildParser("atom is float");
+            emit(OP_CONST_LOAD);
+            emit16((uint16_t)emitConst());
+    
+            break;
+        }
+
+        case IDENTIFIER: {
+            if (peek().type == OPENBRAC) {
+                return functionCall(false);
+            } else if (peek().type == COLON && peek2().type == COLON) {
+                return functionCall(true);
+            }
+            logBuildParser("atom is ident");
+            uint16_t slot = resolve(current().value);
+            
+            emit(OP_LOAD); // takes from slot given and return into top
+            emit16((uint16_t)slot); // put slot into mem
+
+            TokenType type = resolveType(current().value);
+            advance();
+            return type;
+
+            break;
+        }
+
+        default: {
+            lraise(WF_BUILD, ERR_PARSER_ATOM_UNKOWN, current().line, current().collumn, b->currentFileName);
+            break;
+        }
+    }
+    TokenType type = current().type;
+    advance();
+    return type;
+}
+
+/// @brief Parses a full expression.
+/// @return The result type of the expression.
+static TokenType parseExpression(void) {
+    TokenType ltype = parseAtom(); // result -> top
+
+    while (current().type == OPERATION) {
+        char op = current().value[0];
+
+        advance();
+
+        TokenType rtype = parseAtom(); // right operand -> top | left -> 2nd
+
+        if (ltype != rtype) {
+            lraise(WF_BUILD, ERR_PARSER_TYPE_CONFLICT_EXPR, current().line, current().collumn, b->currentFileName);
+            
+            return UNKNOWN;
+        }
+
+        switch (op) {
+            case '+': emit(OP_OPERATE_ADD); break;
+            case '-': emit(OP_OPERATE_SUB); break;
+            case '*': emit(OP_OPERATE_MUL); break;
+            case '/': emit(OP_OPERATE_DIV); break;
+            case '^': emit(OP_OPERATE_EXP); break;
+
+            default:
+                lraise(WF_BUILD, ERR_PARSER_UNKOWN_OPERATOR,
+                      current().line,
+                      current().collumn,
+                    b->currentFileName);
+                return UNKNOWN;
+        }
+    }
+    
+    return ltype;
+}
+
+/// @brief Parses a full expression and ensures the type is what is expected.
+/// @param aim The expected type.
+static void parseExpressionTC(TokenType aim) {
+    TokenType type = parseExpression();
+    if (aim != type) {
+        lraise(WF_BUILD, ERR_PARSER_TYPE_CONFLICT_EXPR, current().line, current().collumn, b->currentFileName);
+        return;
+    }
+    return;
+}
+
+/// @brief Parses a variable assignment.
+static void parseAssign(void) {
+    logBuildParser("Parsing assignment");
+
+    char *name = current().value;
+    uint16_t slot = resolve(name);
+
+    expectAndPass(EQUALS);
+
+    parseExpressionTC(resolveType(name));
+
+    emit(OP_STORE);
+    emit16(slot);
+
+    expectCurrent(SEMICOLON);
+}
+
+/// @brief Parses a variable declaration.
+static void parseVarDecl(void) {
+    logBuildParser("Parsing variable declaration");
+
+    if (current().type != IDENTIFIER) {
+        lraise(WF_BUILD, ERR_PARSER_EXPECTED_IDENT, current().line, current().collumn, b->currentFileName);
+    };
+
+    char *type = current().value;
+    TokenType aim = getTypeVar();
+
+    if (!(strcmp(type, "int") == 0 ||
+          strcmp(type, "str") == 0 ||
+          strcmp(type, "flt") == 0 ||
+          strcmp(type, "chr") == 0)) {
+        lraise(WF_BUILD, ERR_PARSER_UNEXPECTED_STATE, current().line, current().collumn, b->currentFileName);
+    }
+
+    expect(IDENTIFIER);
+
+    char *name = current().value;
+    uint16_t slot = define(name, aim);
+
+    expectAndPass(EQUALS);
+
+    parseExpressionTC(aim);
+
+    emit(OP_STORE);
+    emit16(slot);    
+
+    expectCurrent(SEMICOLON);
+}
+
+/// @brief Parses a native function.
+/// @note eg. @log; @dump; @trace.
+static void parseNative(void) {
+    logBuildParser("Parsing Native Call");
+    advance(); //past @
+    NativeCommand nc = NAT_UNKOWN;
+    uint16_t temp;
+    if (strncmp(b->currentFileName, "pkg/std", 7) == 0) {
+        // if (strcmp(current().value, "_print") == 0) {nc = NAT_TRACE;} else
+        if (strcmp(current().value, "_print") == 0) {nc = NAT_PRINT; advance(); emit(OP_CONST_LOAD); emit16(emitConst()); goto emitNat;} else
+        if (strcmp(current().value, "_quit") == 0) {nc = NAT_EXIT; advance(); sscanf(current().value, "%hu", &temp); emit(OP_PUSH); emit16(temp); goto emitNat;}
+    }
+    if (strcmp(current().value, "log") == 0) {nc = NAT_LOG; goto emitNat;} else
+    if (strcmp(current().value, "dump") == 0) {nc = NAT_DUMP; goto emitNat;} else
+    if (strcmp(current().value, "trace") == 0) {nc = NAT_TRACE; goto emitNat;}
+    
+    lraise(WF_BUILD, ERR_PARSER_UNKOWN_NATIVE, current().line, current().collumn, b->currentFileName);
+    return;
+
+emitNat:
+    emit(OP_CALL_NATIVE);
+    emit((uint8_t)nc);
+    expectAndPass(SEMICOLON);    
+}
+
+/// @brief Parses the body of a function.
+/// @param retType The type of return expected.
+static void parseFuncBody(TokenType retType) {
+    bool has_ret = false;
+    while (current().type != CLOSEBRACE &&
+           current().type != ENDOFSTREAM) {
+
+        uint32_t before = b->pos;
+
+        // RETURN HANDLING
+        if (strcmp(current().value, "rtn") == 0) {
+            has_ret = true;
+            advance();
+            parseExpressionTC(retType);
+
+            emit(OP_RETURN);
+
+            expectCurrent(SEMICOLON);
+
+            // IMPORTANT: return ends statement cleanly
+            continue;
+        }
+
+        parseStatement();
+
+        if (b->pos == before) {
+            lraise(WF_BUILD, ERR_PARSER_STALLED, current().line, current().collumn, b->currentFileName);
+            break;
+        }
+    }
+    if (!has_ret) {
+        lraise(WF_BUILD, ERR_PARSER_NO_RETURN, current().line, current().collumn, b->currentFileName);
+    }
+}
+
+/// @brief Parse a function definition. 
+static void parseFunction(void) {
+    logBuildParser("[FN] Enter parseFunction()");
+
+    advance(); // past fnc
+    logBuildParser("[FN] Consumed 'fnc'");
+
+    bool runNow = false;
+
+    if (strcmp(current().value, "!") == 0) {
+        runNow = true;
+        logBuildParser("[FN] Run-now flag detected");
+        advance();
+    }
+
+    logBuildParser("[FN] Parsing function name");
+
+    char name[256];
+    snprintf(name, sizeof(name), "%s", current().value);
+
+    expectCurrent(IDENTIFIER);
+
+    logBuildParser("[FN] Function name captured");
+
+    isKeyword(name);
+    logBuildParser("[FN] Keyword check passed");
+
+    expectCurrent(OPENBRAC);
+    logBuildParser("[FN] Enter parameter list");
+
+    while (current().type != CLOSEBRAC) {
+        logBuildParser("[FN] Parsing param token");
+        advance();
+    }
+
+    logBuildParser("[FN] End parameter list");
+
+    advance(); // onto '<'
+    logBuildParser("[FN] Parsing return type start");
+
+    if (strcmp(current().value, "<") != 0) {
+        logBuildParser("[FN] ERROR: missing '<'");
+        lraise(WF_BUILD, ERR_PARSER_NO_OPEN_TYPE_BRACKET, current().line, current().collumn, b->currentFileName);
+        return;
+    }
+
+    advance();
+    logBuildParser("[FN] Reading return type");
+
+    TokenType retType = getTypeVar();
+
+    advance(); // onto '>'
+    logBuildParser("[FN] Expecting '>'");
+
+    if (strcmp(current().value, ">") != 0) {
+        logBuildParser("[FN] ERROR: missing '>'");
+        lraise(WF_BUILD, ERR_PARSER_NO_CLOSE_TYPE_BRACKET, current().line, current().collumn, b->currentFileName);
+        return;
+    }
+
+    logBuildParser("[FN] Return type parsed successfully");
+
+    expectAndPass(OPENBRACE);
+    logBuildParser("[FN] Enter function body");
+
+    uint32_t reservedLoc = 0;
+    uint32_t origin = 0;
+
+    if (!runNow) {
+        emit(OP_JUMP);
+        reservedLoc = reserve32();
+        origin = b->byteIndex;
+        logBuildParser("[FN] Reserved jump patch slot");
+    }
+
+    char nameWithPrefix[1024];
+    snprintf(nameWithPrefix, sizeof(nameWithPrefix), "%s%s", b->funcPrefix, name);
+    definef(nameWithPrefix, retType);
+    logBuildParser("[FN] Function registered in symbol table");
+
+    parseFuncBody(retType);
+
+    logBuildParser("[FN] Function body closed");
+
+    if (!runNow) {
+        logBuildParser("[FN] Patching jump address");
+        patch32(reservedLoc, b->byteIndex-origin);
+    }
+
+    advance();
+    if (current().type == SEMICOLON) {
+        advance();
+    }
+
+    logBuildParser("[FN] Function fully parsed");
+
+    return;
+}
+
+/// @brief Parses a module import.
+static void parseModule(void) {
+    int nameMaxLen = 8;
+    char *name = malloc(nameMaxLen * sizeof(char));
+    name[0] = '\0';
+    int needed;
+    char *prefixName;
+
+    if (strcmp(current().value, "std") == 0) {
+        inStd = true;
+        logBuildParser("IN STD");
+    }
+
+    do {
+        needed = strlen(name) + strlen(current().value) + 1;
+
+        if (needed >= nameMaxLen) {
+            while (needed >= nameMaxLen)
+                nameMaxLen *= 2;
+
+            name = realloc(name, nameMaxLen);
+        }
+
+        strcat(name, current().value);
+
+        advance();
+
+        if (current().type == IDENTIFIER && strcmp(current().value, "as") == 0) {
+            advance();
+            prefixName = malloc((strlen(current().value)+1) * sizeof(char));
+            snprintf(prefixName, (strlen(current().value)+1), "%s", current().value);
+            advance(); // onto semicolon
+            goto module;
+        }
+    } while (current().type != SEMICOLON);
+
+    prefixName = malloc((strlen(previous().value)+1) * sizeof(char));
+    snprintf(prefixName, strlen(previous().value)+1, "%s", previous().value);
+
+module:
+    if (isModuleLoaded(name) || isModuleLoaded(prefixName)) {
+        // lraise(WF_BUILD, ERR_PARSER_MODULE_PREVIOUSLY_LOADED, previous().line, previous().collumn, b->currentFileName);
+        // expectAndPass(SEMICOLON, "No Semicolon After Statement");
+        return;
+    }
+
+    addModule(name);
+    addModule(prefixName);
+
+    char path[PATH_MAX];
+    snprintf(path, sizeof(path), "pkg/%s.leyo", name);
+    FILE *fp = fopen(path, "rb");
+    if (!fp) {
+        lraise(WF_BUILD, ERR_PARSER_MODULE_CANNOT_OPEN, current().line, current().collumn, b->currentFileName);
+        return;
+    }
+
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    rewind(fp);
+
+    char *src = malloc(size + 1);
+    fread(src, 1, size, fp);
+    src[size] = '\0';
+    fclose(fp);
+
+    TokenStream ts = tokenise(src);
+    
+    Token *oldTokens = b->tokens;
+    uint32_t oldCount = b->count;
+    uint32_t oldPos = b->pos;
+    char oldFuncPrefix[256];
+    snprintf(oldFuncPrefix, sizeof(oldFuncPrefix), "%s", b->funcPrefix);
+    char *oldCurrentFileName = b->currentFileName;
+
+    b->tokens = ts.stream;
+    b->count = ts.count;
+    b->pos = 0;
+    snprintf(b->currentFileName, 511, "%s", path);
+    snprintf(b->funcPrefix, sizeof(b->funcPrefix), "%s::", prefixName);
+
+    while (current().type != ENDOFSTREAM) {
+        logBuildParser("[MODULE] Entering parseStatement()");
+        parseStatement();
+        logBuildParser("[MODULE] Returned from parseStatement()");
+    }
+
+    // No OP_FINISH as more code to come
+
+    free(ts.stream);
+
+    b->tokens = oldTokens;
+    b->count = oldCount;
+    b->pos = oldPos;
+    snprintf(b->currentFileName, 511, "%s", oldCurrentFileName);
+    snprintf(b->funcPrefix, sizeof(b->funcPrefix), "%s", oldFuncPrefix);
+
+    inStd = false;
+    logBuildParser("OUT STD");
+
+    expectCurrent(SEMICOLON);
+}
+
+/// @brief Parse a statement. General entry point for all options.
+static void parseStatement(void) {
+    logBuildParser("Parsing statement");
+
+    switch (current().type) {
+        case SEMICOLON:
+            logBuildParser("[WARN] Lone SemiColon");
+            advance();
+            break;
+
+        case NATIVE:
+            if (strcmp(current().value, "@") == 0) {
+                parseNative();
+                break;
+            }
+            lraise(WF_BUILD, ERR_PARSER_LEXER_FAILURE_CAUGHT, current().line, current().collumn, b->currentFileName);
+            break;
+
+        case IDENTIFIER: {
+
+            // type keywords OR variable name
+            if (strcmp(current().value, "int") == 0 ||
+                strcmp(current().value, "str") == 0 ||
+                strcmp(current().value, "flt") == 0 ||
+                strcmp(current().value, "chr") == 0) {
+
+                parseVarDecl();
+            } else if (strcmp(current().value, "fnc") == 0) {
+                parseFunction();
+            } else if (strcmp(current().value, "use") == 0) {
+                advance();
+                parseModule();
+            } else if (peek().type == EQUALS) {
+                parseAssign();
+            } else if (peek().type == OPENBRAC) {
+                functionCall(false);
+                consumeStatementTerminator("Function call");
+            } else if (peek().type == COLON && peek2().type == COLON) {
+                functionCall(true);
+                consumeStatementTerminator("Function call: from module");
+            } else {
+                lraise(WF_BUILD, ERR_PARSER_UNKOWN_IDENT_STMT, current().line, current().collumn, b->currentFileName);
+            }
+            break;
+        }
+
+        default:
+            lraise(WF_BUILD, ERR_PARSER_UNKOWN_STMT, current().line, current().collumn, b->currentFileName);
+            break;
+    }
+}
+
+ByteCodeResult parse(TokenStream *ts, char *currentFileName) {
+    logBuildParser("Parser started");
+
+    logBuildParser("Assigning parser state");
+
+    b = &bytecoder;
+
+    b->tokens = ts->stream;
+    b->count = ts->count;
+    b->pos = 0;
+    b->byteCap = 64;
+    b->bytebuff = malloc(sizeof(uint8_t) * b->byteCap);
+    b->byteIndex = 0;
+    b->funcs = malloc(sizeof(Func) * 1024);
+    b->funcAmt = 0;
+    b->funcPrefix[0] = '\0';
+    b->constAmt = 0;
+    b->constCap = 1;
+    b->consts = malloc(sizeof(Value) * b->constCap);
+    b->globalCount = 0;
+    b->globalCap = 16;
+    b->globals = malloc(b->globalCap * sizeof(Global));
+    b->moduleCap = 8;
+    b->moduleAmt = 0;
+    b->modulesLoaded = malloc(sizeof(char *) * b->moduleCap);
+    snprintf(b->currentFileName, 511, "%s", currentFileName);
+
+    if (!b->funcs) {
+        lraise(WF_GENERAL, ERR_PARSER_CANNOT_ALLOCATE, 0, 0, NULL);
+    }
+
+    if (!b->consts) {
+        lraise(WF_GENERAL, ERR_PARSER_CANNOT_ALLOCATE, 0, 0, NULL);
+    }
+
+    constBuf.length = 0;
+    constBuf.capacity = 65535;
+    constBuf.data = malloc(constBuf.capacity);
+
+    if (!constBuf.data) {
+        lraise(WF_GENERAL, ERR_PARSER_CANNOT_ALLOCATE, 0, 0, NULL);
+    }
+
+    logBuildParser("State assigned");
+
+    logBuildParser("About to enter while loop");
+
+    while (current().type != ENDOFSTREAM) {
+        logBuildParser("Entering parseStatement()");
+        parseStatement();
+        logBuildParser("Returned from parseStatement()");
+    }
+
+    // Entry Point
+    emit(OP_CALL);
+    emit32((int32_t)(resolvef("main") - (b->byteIndex + 4)));
+
+    logBuildParser("Reached EOF");
+
+    emit(OP_FINISH); // end mark
+
+    ByteCodeResult res = {0};
+    res.length = b->byteIndex;
+    res.data = malloc(res.length);
+    memcpy(res.data, b->bytebuff, res.length);
+
+    res.globalAmount = b->globalCount;
+
+    size_t cap = 65535;
+    uint8_t *consts = malloc(cap);
+    
+    size_t amount = 0;
+    Value c;
+    uint64_t i = 0;
+    while (i < b->constAmt) {
+        c = b->consts[i++];
+        switch (c.flag) {
+            case VAL_INT:
+                consts[amount++] = 0x01;
+                int64_t val_i = c.as.i;
+                memcpy(&consts[amount], &val_i, sizeof(val_i));
+                amount += sizeof(val_i);
+                break;
+
+            case VAL_FLOAT:
+                consts[amount++] = 0x02;
+
+                double val_f = c.as.f;
+                memcpy(&consts[amount], &val_f, sizeof(val_f));
+                amount += sizeof(val_f);
+                break;
+
+            case VAL_CHAR:
+                consts[amount++] = 0x03;
+                consts[amount++] = (uint8_t)c.as.c;
+                break;
+
+            case VAL_STR: {
+                const char *s = c.as.s;
+                uint32_t len = strlen(s);
+
+                consts[amount++] = 0x04;
+
+                memcpy(&consts[amount], &len, sizeof(len));
+                amount += sizeof(len);
+
+                memcpy(&consts[amount], s, len);
+                amount += len;
+                break;
+            }
+            
+            default:
+                break;
+        }
+        
+    }
+
+    const uint8_t *constsFinal = consts;
+
+    ConstBuffer cb = {0};
+    cb.data = malloc(amount);
+    cb.length = amount;
+    memcpy(cb.data, constsFinal, cb.length);
+    res.cb = cb;
+
+    free(b->bytebuff);
+    for (int i = 0; i < b->moduleAmt; i++) {
+        free(b->modulesLoaded[i]);
+    }
+    free(b->modulesLoaded);
+    
+    return res;
+}
