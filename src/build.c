@@ -67,7 +67,7 @@ static void printTokenStream(TokenStream ts) {
 static void printByteCode(ByteCodeResult* bc) {
     logController("Printing bytecode output");
 
-    for (int i = 0; i < bc->length; i++) {
+    for (uint64_t i = 0; i < bc->length; i++) {
         printf("%02x ", bc->data[i]);
     }
     printf("\n");
@@ -132,7 +132,13 @@ tokenising:
         callAllErr();
     }
 
-    ByteCodeResult bcr = headThis(parse(&ts, filename));
+    ByteCodeResult bcr = parse(&ts, filename);
+
+    if (dump) {
+        printByteCode(&bcr);
+    }
+
+    bcr = headThis(bcr);
 
     logController("Parsing to bytecode completed");
 

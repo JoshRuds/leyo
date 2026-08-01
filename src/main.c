@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
             dest = "a.lybc";
         }
 
-        return build(source, dest, isScript, isFlag(&parser, "-d"));
+        return build(source, dest, isScript, isFlag(&parser, "-d") || isFlag(&parser, "--dump"));
 
     } else if (isCommand(&parser, "run")) {
 
