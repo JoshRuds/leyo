@@ -71,7 +71,7 @@ int opcode_has_operand(uint8_t op) {
 
         case OP_JUMP:
         case OP_CALL:
-            return 4;
+            return 8;
 
         default:
             return 0;
@@ -207,7 +207,7 @@ int dis(char *filename, bool flag_justHex, bool flag_head) {
         return 1;
     } 
 
-    if (flag_head) {
+    if (!flag_head) {
         if (flag_justHex) {
             disassembleHex(data + ENTRY_POINT, size - ENTRY_POINT);
         } else {
@@ -228,6 +228,8 @@ int dis(char *filename, bool flag_justHex, bool flag_head) {
     } 
 
     free(data);
+
+    printf("\n");
 
     return 0;
 }

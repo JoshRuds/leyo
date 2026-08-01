@@ -92,7 +92,7 @@ typedef struct {
 /// @brief The result to be passed between processes.
 typedef struct {
     uint8_t *data;
-    int length;
+    uint64_t length;
     ConstBuffer cb;
     uint64_t globalAmount;
 } ByteCodeResult;

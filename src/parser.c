@@ -102,6 +102,7 @@ static void expectCurrent(TokenType type) {
     advance();
 }
 
+/*
 /// @brief Expect the next value to be the given type, and move onto it.
 /// @param type The type to expect.
 static void expect(TokenType type) {
@@ -115,6 +116,7 @@ static void expect(TokenType type) {
     }
     advance();
 }
+*/
 
 /// @brief Expect the next value to be the given type, and skip it. 
 /// @param type The type to expect.
@@ -164,15 +166,6 @@ static void emit16(uint16_t value) {
     emit((uint8_t)((value >> 8) & 0xFF));
 }
 
-/// @brief Appends the four-byte value to the byte-buffer.
-/// @param value The four bytes to append.
-static void emit32(uint32_t value) {
-    emit((uint8_t)(value & 0xFF));
-    emit((uint8_t)((value >> 8) & 0xFF));
-    emit((uint8_t)((value >> 16) & 0xFF));
-    emit((uint8_t)((value >> 24) & 0xFF));
-}
-
 /// @brief Appends the eight-byte value to the byte-buffer.
 /// @param value The eight bytes to append.
 static void emit64(uint64_t value) {
@@ -186,28 +179,32 @@ static void emit64(uint64_t value) {
     emit((uint8_t)((value >> 56) & 0xFF));
 }
 
-/// @brief Emits a empty four-byte slot.
+/// @brief Emits an empty eight-byte slot.
 /// @return The location.
-static uint32_t reserve32(void) {
-    uint32_t pos = b->byteIndex;
-    emit32(0);
+static uint64_t reserve64(void) {
+    uint64_t pos = b->byteIndex;
+    emit64(0);
     return pos;
 }
 
-/// @brief Emits four-bytes at the given slot.
+/// @brief Emits eight bytes at the given slot.
 /// @param loc Where to emit.
-/// @param value The four-byte value to emit.
-static void patch32(uint32_t loc, uint32_t value) {
-    if (loc + 3 >= b->byteIndex) {
+/// @param value The eight-byte value to emit.
+static void patch64(uint64_t loc, uint64_t value) {
+    if (loc + 7 >= b->byteIndex) {
         logBuildParser("Invalid patch location");
         lraise(WF_BUILD, ERR_PARSER_OUT_OF_BOUNDS, current().line, current().collumn, b->currentFileName);
         return;
     }
 
-    b->bytebuff[loc+0] = (uint8_t)(value & 0xFF);
-    b->bytebuff[loc+1] = (uint8_t)((value >> 8) & 0xFF);
-    b->bytebuff[loc+2] = (uint8_t)((value >> 16) & 0xFF);
-    b->bytebuff[loc+3] = (uint8_t)((value >> 24) & 0xFF);
+    b->bytebuff[loc + 0] = (uint8_t)(value & 0xFF);
+    b->bytebuff[loc + 1] = (uint8_t)((value >> 8) & 0xFF);
+    b->bytebuff[loc + 2] = (uint8_t)((value >> 16) & 0xFF);
+    b->bytebuff[loc + 3] = (uint8_t)((value >> 24) & 0xFF);
+    b->bytebuff[loc + 4] = (uint8_t)((value >> 32) & 0xFF);
+    b->bytebuff[loc + 5] = (uint8_t)((value >> 40) & 0xFF);
+    b->bytebuff[loc + 6] = (uint8_t)((value >> 48) & 0xFF);
+    b->bytebuff[loc + 7] = (uint8_t)((value >> 56) & 0xFF);
 }
 
 /// @brief Checks to ensure the const buffer is large enough, else it re-allocates double memory for it.
@@ -497,7 +494,7 @@ static bool isNameNotValid(char *name, bool noRaise) {
 /// @param name Name to check.
 /// @return Bool - true if name exists, else false. 
 static bool exists(const char *name) {
-    for (int i = 0; i < b->globalCount; i++)
+    for (uint64_t i = 0; i < b->globalCount; i++)
         if (strcmp(b->globals[i].name, name) == 0)
             return true;
 
@@ -550,7 +547,7 @@ static uint64_t definef(char *name, TokenType ret) {
 /// @param name Name of the variable.
 /// @return The slot in the varibale table.
 static uint64_t resolve(char *name) {
-    for (int i = 0; i < b->globalCount; i++) {
+    for (uint64_t i = 0; i < b->globalCount; i++) {
         if (strcmp(b->globals[i].name, name) == 0) {
             return b->globals[i].slot;
         }
@@ -763,6 +760,7 @@ static void parseExpressionTC(TokenType aim) {
     return;
 }
 
+/*
 /// @brief Parses a variable assignment.
 /// @deprecated Now replaced by @c parseDynamicVar() which handles both
 /// assignments and var declarations.
@@ -816,6 +814,7 @@ static void parseVarDecl(void) {
 
     expectCurrent(SEMICOLON);
 }
+*/
 
 /// @brief Parses a variable definition and assignment. 
 static void parseDynamicVar(void) {
@@ -887,7 +886,7 @@ static void parseFuncBody(TokenType retType) {
 
             expectCurrent(SEMICOLON);
 
-            // IMPORTANT: return ends statement cleanly
+            // return ends statement cleanly
             continue;
         }
 
@@ -968,12 +967,12 @@ static void parseFunction(void) {
     expectAndPass(OPENBRACE);
     logBuildParser("[FN] Enter function body");
 
-    uint32_t reservedLoc = 0;
-    uint32_t origin = 0;
+    uint64_t reservedLoc = 0;
+    uint64_t origin = 0;
 
     if (!runNow) {
         emit(OP_JUMP);
-        reservedLoc = reserve32();
+        reservedLoc = reserve64();
         origin = b->byteIndex;
         logBuildParser("[FN] Reserved jump patch slot");
     }
@@ -989,7 +988,7 @@ static void parseFunction(void) {
 
     if (!runNow) {
         logBuildParser("[FN] Patching jump address");
-        patch32(reservedLoc, b->byteIndex-origin);
+        patch64(reservedLoc, b->byteIndex-origin);
     }
 
     advance();

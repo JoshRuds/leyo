@@ -33,14 +33,14 @@ typedef struct {
 /// @brief Describes the runner. Contains all needed information to run the VM.
 typedef struct {
     uint8_t *code;
-    uint32_t ip;
-    uint32_t size;
+    uint64_t ip;
+    uint64_t size;
 
     char filename[512];
 
     Value *stack;
-    uint32_t sp;
-    uint32_t stackCap;
+    uint64_t sp;
+    uint64_t stackCap;
 
     Value *globals;
     uint64_t globalAmount; // how many globals are used
@@ -169,7 +169,7 @@ static void dumpState(uint8_t op) {
     char rBuf[64];
     if (vm->sp <= 0) {
         snprintf(buf, sizeof(buf),
-            "OP=0x%02X | stackPointer=%d stackCap=%d stackTop=None | ip=%d | callAmt=%d",
+            "OP=0x%02X | stackPointer=%llu stackCap=%llu stackTop=None | ip=%llu | callAmt=%d",
             op,
             vm->sp,
             vm->stackCap,
@@ -178,7 +178,7 @@ static void dumpState(uint8_t op) {
         );
     } else {
         snprintf(buf, sizeof(buf),
-            "OP=0x%02X | stackPointer=%d stackCap=%d stackTop=%s | ip=%d | callAmt=%d",
+            "OP=0x%02X | stackPointer=%llu stackCap=%llu stackTop=%s | ip=%llu | callAmt=%d",
             op,
             vm->sp,
             vm->stackCap,
@@ -193,14 +193,20 @@ static void dumpState(uint8_t op) {
 
 /// @brief Get the current byte in the bytecode.
 /// @return The current byte.
-static uint8_t readByte(void) {
+static inline uint8_t readByte(void) {
+    if (vm->ip>=vm->size) {
+        lraise(WF_VM, ERR_VM_OVERFLOW, vm->ip, 0, vm->filename);       
+        return 0x00; 
+    }
     return vm->code[vm->ip];
 }
 
 /// @brief Move the instruction pointer forward by one. 
 static inline void advanceByte(void) {
-    if (vm->ip+1>=vm->size)
-        lraise(WF_VM, ERR_VM_OVERFLOW, vm->ip, 0, vm->filename);
+    if (vm->ip>=vm->size) {
+        lraise(WF_VM, ERR_VM_OVERFLOW, vm->ip, 0, vm->filename);       
+        return; 
+    }
     vm->ip++;
 }
 
@@ -226,9 +232,9 @@ static uint32_t read32(void) {
 
 /// @brief Get the current eight bytes in the bytecode.
 /// @return The current eight bytes.
-static uint32_t read64(void) {
-    uint32_t low = read32();
-    uint32_t high = read32();
+static uint64_t read64(void) {
+    uint64_t low = read32();
+    uint64_t high = read32();
 
     return low | (high << 32);
 }
@@ -710,7 +716,7 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
         snprintf(buf, 64, "%s", opcode_name(op));
         logRuntime(buf);
 
-        advanceByte();
+        // advanceByte();
 
         switch (op) {
             case OP_PUSH: {
@@ -772,7 +778,7 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
             }
 
             case OP_STORE: {
-                uint16_t slot = read16();
+                uint64_t slot = read64();
                 if (slot >= vm->globalAmount) {
                     freeAll();
                     lraise(WF_VM, ERR_VM_GLOBAL_SLOT_OUT_OF_RANGE, vm->ip,0, vm->filename);
@@ -783,7 +789,7 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
             }
 
             case OP_LOAD: {
-                uint16_t slot = read16();
+                uint64_t slot = read64();
                 if (slot >= vm->globalAmount) {
                     freeAll();
                     lraise(WF_VM, ERR_VM_GLOBAL_SLOT_OUT_OF_RANGE, vm->ip,0, vm->filename);
@@ -827,13 +833,13 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
             }
 
             case OP_JUMP: {
-                int32_t offset = (int32_t)read32();
-                if (offset < 0 && vm->ip < (uint32_t)(-offset)) {
+                int64_t offset = (int64_t)read64();
+                if (offset < 0 && vm->ip < (uint64_t)(-offset)) {
                     lraise(WF_VM, ERR_VM_INVALID_JUMP, vm->ip,0, vm->filename);
                 }
                 if (verbose) {
                     char buf[64];
-                    snprintf(buf, 64, "%d", offset);
+                    snprintf(buf, 64, "%lld", offset);
                     logRuntime(buf);
                 }
                 vm->ip += offset;
@@ -842,14 +848,14 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
 
             case OP_CALL: {
                 checkCallStack();
-                vm->callStack[vm->callAmt++] = (Call){.rtnAdr = vm->ip+4};
-                int32_t offset = (int32_t)read32();
-                if (offset < 0 && vm->ip < (uint32_t)(-offset)) {
+                vm->callStack[vm->callAmt++] = (Call){.rtnAdr = vm->ip+8};
+                int64_t offset = (int64_t)read64();
+                if (offset < 0 && vm->ip < (uint64_t)(-offset)) {
                     lraise(WF_VM, ERR_VM_INVALID_JUMP, vm->ip,0, vm->filename);
                 }
                 if (verbose) {
                     char buf[64];
-                    snprintf(buf, 64, "%d", offset);
+                    snprintf(buf, 64, "%lld", offset);
                     logRuntime(buf);
                 }
                 vm->ip += offset;
@@ -870,7 +876,7 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
 
             default: {
                 logRuntime("Unknown opcode encountered");
-                printf("Unknown opcode: 0x%02X at %d\n", op, vm->ip - 1);
+                printf("Unknown opcode: 0x%02X at %llu\n", op, vm->ip - 1);
                 freeAll();
                 exit(1);
             }
