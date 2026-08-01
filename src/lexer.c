@@ -14,9 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-const char OPERATORS[] = "+-*/^";
-const char CONDITIONS[] = "><!";
-
 char *src;
 
 bool isAlpha(char src) {
@@ -120,6 +117,12 @@ static char peek(void) {
     return src[l->i+1];
 }
 
+/// @brief Gets the second next character.
+/// @return The second next char.
+static char peek2(void) {
+    return src[l->i+2];
+}
+
 /// @brief Gets the current character.
 /// @return The current char.
 static char current(void) {
@@ -160,7 +163,7 @@ static void handleNormal(void) {
         return;
     }
     else if (c == '/' && peek() == '*') {
-        l->mode = M_LINE_COMMENT;
+        l->mode = M_COMMENT;
         logBuildLexer("Switching to MULTI-LINE COMMENT mode");
         advance();
         advance();
@@ -172,10 +175,10 @@ static void handleNormal(void) {
         advance();
         return;
     } 
-    else if (c == '\'') {
+    else if (c == '\'' && peek2() == '\'') {
         logBuildLexer("Handling Char");
         advance();
-        push(token(charToStr(current()), CHR));
+        push(token(charToStr(current()), T_CHAR));
         advance();
         advance();
         return;
@@ -191,46 +194,162 @@ static void handleNormal(void) {
         return;
     };
 
-    if (c == '@') { push(token(charToStr(c), NATIVE)); } else
-    if (c == '(') { push(token(charToStr(c), OPENBRAC)); } else
-    if (c == ')') { push(token(charToStr(c), CLOSEBRAC)); } else
-    if (c == ',') { push(token(charToStr(c), COMMA)); } else 
-    if (c == ';') { push(token(charToStr(c), SEMICOLON)); } else
-    if (c == '[') { push(token(charToStr(c), OPENSQUARE)); } else
-    if (c == ']') { push(token(charToStr(c), CLOSESQUARE)); } else
-    if (c == '{') { push(token(charToStr(c), OPENBRACE)); } else
-    if (c == '}') { push(token(charToStr(c), CLOSEBRACE)); } else
-    if (c == ':') { push(token(charToStr(c), COLON)); } else
-    if (c == '=') {
+    // Singles
+    if (c == '@') {
+        push(token(charToStr(c), T_NATIVE));
+    } else if (c == '(') {
+        push(token(charToStr(c), T_OPENBRAC));
+    } else if (c == ')') {
+        push(token(charToStr(c), T_CLOSEBRAC));
+    } else if (c == ',') {
+        push(token(charToStr(c), T_COMMA));
+    } else if (c == ';') {
+        push(token(charToStr(c), T_SEMICOLON));
+    } else if (c == '[') {
+        push(token(charToStr(c), T_OPENSQUARE));
+    } else if (c == ']') {
+        push(token(charToStr(c), T_CLOSESQUARE));
+    } else if (c == '{') {
+        push(token(charToStr(c), T_OPENBRACE));
+    } else if (c == '}') {
+        push(token(charToStr(c), T_CLOSEBRACE));
+    } else if (c == ':') {
+        push(token(charToStr(c), T_COLON));
+    } else if (c == '&') {
+        push(token(charToStr(c), T_LOGICAL_AND));
+    } else if (c == '|') {
+        push(token(charToStr(c), T_LOGICAL_OR));
+
+    // Assignment / equality 
+    } else if (c == '=') {
         if (peek() == '=') {
             advance();
+
             if (peek() == '=') {
                 advance();
-                push(token("===", CONDITION));
+                push(token("===", T_STRICT_EQUAL_EQUAL));
             } else {
-                push(token("==", CONDITION));
+                push(token("==", T_EQUAL_EQUAL));
             }
         } else {
-            push(token(charToStr(c), EQUALS));
+            push(token(charToStr(c), T_EQUALS));
         }
-    } 
-    else if (charIn(c, OPERATORS)) {
-        push(token(charToStr(c), OPERATION));
-    } 
-    else if (charIn(c, CONDITIONS)) {
+
+    // Not / not equal 
+    } else if (c == '!') {
         if (peek() == '=') {
             advance();
-            char tmp[3] = { previous(), current(), '\0'};
-            push(token(tmp, CONDITION));
+
+            if (peek() == '=') {
+                advance();
+                push(token("!==", T_STRICT_NOT_EQUAL));
+            } else {
+                push(token("!=", T_NOT_EQUAL));
+            }
+        } else {
+            push(token(charToStr(c), T_LOGICAL_NOT));
         }
-        push(token(charToStr(c), CONDITION));
-    } 
-    else {
+
+    // Plus / increment / plus assignment 
+    } else if (c == '+') {
+        if (peek() == '+') {
+            advance();
+            push(token("++", T_INCREMENT));
+        } else if (peek() == '=') {
+            advance();
+            push(token("+=", T_PLUS_EQUALS));
+        } else {
+            push(token(charToStr(c), T_PLUS));
+        }
+
+    // Minus / decrement / minus assignment 
+    } else if (c == '-') {
+        if (peek() == '-') {
+            advance();
+            push(token("--", T_DECREMENT));
+        } else if (peek() == '=') {
+            advance();
+            push(token("-=", T_MINUS_EQUALS));
+        } else {
+            push(token(charToStr(c), T_MINUS));
+        }
+
+    // Multiply / multiply assignment 
+    } else if (c == '*') {
+        if (peek() == '=') {
+            advance();
+            push(token("*=", T_MULTIPLY_EQUALS));
+        } else {
+            push(token(charToStr(c), T_MULTIPLY));
+        }
+
+    // Divide / divide assignment 
+    } else if (c == '/') {
+        if (peek() == '=') {
+            advance();
+            push(token("/=", T_DIVIDE_EQUALS));
+        } else {
+            push(token(charToStr(c), T_DIVIDE));
+        }
+
+    // Exponent / exponent assignment 
+    } else if (c == '^') {
+        if (peek() == '=') {
+            advance();
+            push(token("^=", T_DIVIDE_EQUALS));
+        } else {
+            push(token(charToStr(c), T_DIVIDE));
+        }
+
+    // Modulo / modulo assignment 
+    } else if (c == '%') {
+        if (peek() == '=') {
+            advance();
+            push(token("%=", T_MODULO_EQUALS));
+        } else {
+            push(token(charToStr(c), T_MODULO));
+        }
+
+    // Less than / less than or equal 
+    } else if (c == '<') {
+        if (peek() == '=') {
+            advance();
+            push(token("<=", T_LESS_EQUAL));
+        } else {
+            push(token(charToStr(c), T_LESS));
+        }
+
+    // Greater than / greater than or equal 
+    } else if (c == '>') {
+        if (peek() == '=') {
+            advance();
+            push(token(">=", T_GREATER_EQUAL));
+        } else {
+            push(token(charToStr(c), T_GREATER));
+        }
+
+    // Invalid character 
+    } else {
         char buffer[48];
-        snprintf(buffer, sizeof(buffer), "Invalid Character: %c", current());
+
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            "Invalid Character: %c",
+            current()
+        );
+
         logBuildLexer(buffer);
-        lraise(WF_BUILD, ERR_LEX_INVALID_CHAR, l->line, l->collumn, l->filename);
-        push(token(charToStr(c), UNKNOWN));
+
+        lraise(
+            WF_BUILD,
+            ERR_LEX_INVALID_CHAR,
+            l->line,
+            l->collumn,
+            l->filename
+        );
+
+        push(token(charToStr(c), T_UNKNOWN));
     }
 
     advance();
@@ -261,7 +380,7 @@ static void handleString(void) {
 
         if (current() == '"') {
             buff[buffSize] = '\0';
-            push(token(buff, STRING));
+            push(token(buff, T_STRING));
             l->mode = M_NORMAL;
             break;
         }
@@ -306,7 +425,7 @@ static void handleIdentifier(void) {
 
         if (!isalnum(c) && c != '_') {
             buff[buffSize] = '\0';
-            push(token(buff, IDENTIFIER));
+            push(token(buff, T_IDENTIFIER));
             l->mode = M_NORMAL;
             break;
         }
@@ -347,7 +466,7 @@ static void handleNumber(void) {
     }
 
     bool dotSeen = false;
-    TokenType flag = NUMBER;
+    TokenType flag = T_NUMBER;
 
     while (true) {
         char c = current();
@@ -365,7 +484,7 @@ static void handleNumber(void) {
                 lraise(WF_BUILD, ERR_LEX_INVALID_NUM, l->line, l->collumn, l->filename);
                 break;
             }
-            flag = FLT;
+            flag = T_FLOAT;
             dotSeen = true;
         }
 
@@ -446,7 +565,7 @@ TokenStream tokenise(char* _src) {
         }
     }
 
-    push(token("EndOfStream", ENDOFSTREAM));
+    push(token("EndOfStream", T_ENDOFSTREAM));
     logBuildLexer("Lexer finished");
     return lexRes;
 }
