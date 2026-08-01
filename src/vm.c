@@ -585,7 +585,7 @@ static void division(void) {
     }
 }
 
-/// @brief Pops the top 2 values and pushes the expodent. 
+/// @brief Pops the top 2 values and pushes the exponent. 
 static void power(void) {
     Value rhs = pop();
     Value lhs = pop();
