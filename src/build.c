@@ -15,30 +15,80 @@
 #include "../include/codes.h"
 
 /// @brief Gets the string representation of a token type.
-/// @param type The token type.
-/// @return The name of the specified token type, or NULL if the token type is unknown.
+/// @param t The token type.
+/// @return The name of the specified token type, or "???" if the token type is unknown.
 static const char *tokenTypeName(TokenType t) {
     switch (t) {
-        case STRING: return "STRING";
-        case NUMBER: return "NUMBER";
-        case IDENTIFIER: return "IDENTIFIER";
-        case OPENBRAC: return "OPENBRAC";
-        case CLOSEBRAC: return "CLOSEBRAC";
-        case OPENBRACE: return "OPENBRACE";
-        case CLOSEBRACE: return "CLOSEBRACE";
-        case OPENSQUARE: return "OPENSQUARE";
-        case CLOSESQUARE: return "CLOSESQUARE";
-        case COMMA: return "COMMA";
-        case SEMICOLON: return "SEMICOLON";
-        case OPERATION: return "OPERATION";
-        case CONDITION: return "CONDITION";
-        case EQUALS: return "EQUALS";
-        case UNKNOWN: return "UNKNOWN";
-        case ENDOFSTREAM: return "ENDOFSTREAM";
-        case CHR: return "CHAR";
-        case FLT: return "FLOAT";
-        case NATIVE: return "NATIVE";
-        case COLON: return "COLON";
+        // General
+        case T_NONE: return "NONE";
+
+        // Literals
+        case T_NUMBER: return "NUMBER";
+        case T_FLOAT: return "FLOAT";
+        case T_CHAR: return "CHAR";
+        case T_STRING: return "STRING";
+
+        // Identifiers
+        case T_IDENTIFIER: return "IDENTIFIER";
+
+        // Assignment
+        case T_EQUALS: return "EQUALS";
+
+        // Compound assignment
+        case T_PLUS_EQUALS: return "PLUS_EQUALS";
+        case T_MINUS_EQUALS: return "MINUS_EQUALS";
+        case T_MULTIPLY_EQUALS: return "MULTIPLY_EQUALS";
+        case T_EXPODENT_EQUALS: return "EXPODENT_EQUALS";
+        case T_DIVIDE_EQUALS: return "DIVIDE_EQUALS";
+        case T_MODULO_EQUALS: return "MODULO_EQUALS";
+
+        // Arithmetic
+        case T_PLUS: return "PLUS";
+        case T_MINUS: return "MINUS";
+        case T_MULTIPLY: return "MULTIPLY";
+        case T_EXPODENT: return "EXPODENT";
+        case T_DIVIDE: return "DIVIDE";
+        case T_MODULO: return "MODULO";
+
+        // Comparison
+        case T_LESS: return "LESS";
+        case T_LESS_EQUAL: return "LESS_EQUAL";
+        case T_GREATER: return "GREATER";
+        case T_GREATER_EQUAL: return "GREATER_EQUAL";
+        case T_EQUAL_EQUAL: return "EQUAL_EQUAL";
+        case T_NOT_EQUAL: return "NOT_EQUAL";
+        case T_STRICT_EQUAL_EQUAL: return "STRICT_EQUAL_EQUAL";
+        case T_STRICT_NOT_EQUAL: return "STRICT_NOT_EQUAL";
+
+        // Logical
+        case T_LOGICAL_AND: return "LOGICAL_AND";
+        case T_LOGICAL_OR: return "LOGICAL_OR";
+        case T_LOGICAL_NOT: return "LOGICAL_NOT";
+
+        // Increments
+        case T_INCREMENT: return "INCREMENT";
+        case T_DECREMENT: return "DECREMENT";
+
+        // Brackets
+        case T_OPENBRAC: return "OPENBRAC";
+        case T_CLOSEBRAC: return "CLOSEBRAC";
+        case T_OPENBRACE: return "OPENBRACE";
+        case T_CLOSEBRACE: return "CLOSEBRACE";
+        case T_OPENSQUARE: return "OPENSQUARE";
+        case T_CLOSESQUARE: return "CLOSESQUARE";
+
+        // Punctuation
+        case T_SEMICOLON: return "SEMICOLON";
+        case T_COMMA: return "COMMA";
+        case T_COLON: return "COLON";
+
+        // Special
+        case T_NATIVE: return "NATIVE";
+
+        // End / error
+        case T_ENDOFSTREAM: return "ENDOFSTREAM";
+        case T_UNKNOWN: return "UNKNOWN";
+
         default: return "???";
     }
 }
