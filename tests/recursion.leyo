@@ -50,5 +50,5 @@ fnc j() <int> {
 // chained entry function 
 
 fnc main() <int> {
-    rtn j() + i() + h();
+    rtn j() + i() + h() - 606;
 }

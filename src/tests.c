@@ -47,19 +47,19 @@ static int createTmpFolder(void) {
         char uniquePath[MAX_PATH];
 
         if (!GetTempPathA(MAX_PATH, tempPath)) {
-            lraise(WF_GENERAL, ERR_FILE_TEMP_NOT_AVAILABLE, 0,0);
+            lraise(WF_GENERAL, ERR_FILE_TEMP_NOT_AVAILABLE, 0,0, NULL);
             return 1;
         }
 
         if (!GetTempFileNameA(tempPath, "LYO", 0, uniquePath)) {
-            lraise(WF_GENERAL, ERR_FILE_TEMP_NOT_AVAILABLE, 0,0);
+            lraise(WF_GENERAL, ERR_FILE_TEMP_NOT_AVAILABLE, 0,0, NULL);
             return 1;
         }
 
         DeleteFileA(uniquePath);
 
         if (!CreateDirectoryA(uniquePath, NULL)) {
-            lraise(WF_GENERAL, ERR_FILE_TEMP_NOT_AVAILABLE, 0,0);
+            lraise(WF_GENERAL, ERR_FILE_TEMP_NOT_AVAILABLE, 0,0, NULL);
             return 1;
         }
 
