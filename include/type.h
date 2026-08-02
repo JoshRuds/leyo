@@ -9,6 +9,8 @@
 #ifndef TYPE_H
 #define TYPE_H
 
+#include <stddef.h>
+
 typedef enum {
     T_NONE,
 
@@ -93,8 +95,8 @@ typedef struct {
 
 typedef struct {
     Token *stream;
-    int capacity;
-    int count;
+    size_t capacity;
+    size_t count;
 } TokenStream;
 
 #endif

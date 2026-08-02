@@ -42,4 +42,10 @@ struct ASTNode {
     ASTData data;
 };
 
+typedef struct {
+    ASTNode **nodes;
+    size_t count;
+    size_t capacity;
+} ASTNodeList;
+
 #endif
