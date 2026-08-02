@@ -199,7 +199,7 @@ static uint8_t readByte(void) {
 
 /// @brief Move the instruction pointer forward by one. 
 static inline void advanceByte(void) {
-    if (vm->ip+1>=vm->size)
+    if (vm->ip >= vm->size)
         lraise(WF_VM, ERR_VM_OVERFLOW, vm->ip, 0, vm->filename);
     vm->ip++;
 }
@@ -701,6 +701,12 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
         snprintf(buf, 64, "%s", opcode_name(op));
         logRuntime(buf);
 
+        if (op == OP_FINISH) {
+            int exitCode = pop().as.i;
+            freeAll();
+            return exitCode;
+        }
+
         advanceByte();
 
         switch (op) {
@@ -852,11 +858,6 @@ int runVM(ByteCodeResult bc, bool verbose, const char filename[512]) {
                 //vm->sp = vm->callStack[vm->callAmt].stackPos;
                 vm->ip = vm->callStack[vm->callAmt].rtnAdr;
                 break;
-            }
-
-            case OP_FINISH: {
-                freeAll();
-                return pop().as.i;
             }
 
             default: {
