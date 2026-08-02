@@ -993,7 +993,7 @@ module:
     addModule(name);
     addModule(prefixName);
 
-    char path[PATH_MAX];
+    char path[500];
     snprintf(path, sizeof(path), "pkg/%s.leyo", name);
     FILE *fp = fopen(path, "rb");
     if (!fp) {
@@ -1017,7 +1017,8 @@ module:
     uint32_t oldPos = b->pos;
     char oldFuncPrefix[256];
     snprintf(oldFuncPrefix, sizeof(oldFuncPrefix), "%s", b->funcPrefix);
-    char *oldCurrentFileName = b->currentFileName;
+    char oldCurrentFileName[512];
+    snprintf(oldCurrentFileName, sizeof(oldCurrentFileName), "%s", b->currentFileName);
 
     b->tokens = ts.stream;
     b->count = ts.count;
@@ -1038,7 +1039,7 @@ module:
     b->tokens = oldTokens;
     b->count = oldCount;
     b->pos = oldPos;
-    snprintf(b->currentFileName, 511, "%s", oldCurrentFileName);
+    snprintf(b->currentFileName, 512, "%s", oldCurrentFileName);
     snprintf(b->funcPrefix, sizeof(b->funcPrefix), "%s", oldFuncPrefix);
 
     inStd = false;
