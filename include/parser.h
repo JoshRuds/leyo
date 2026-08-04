@@ -11,6 +11,7 @@
 
 #include "../include/type.h"
 
+/// @brief The types of Nodes in Leyo's AST.
 typedef enum {
     AST_BINARY,
     AST_ASSIGN,
@@ -20,6 +21,7 @@ typedef enum {
 
 typedef struct ASTNode ASTNode;
 
+/// @brief The data that can be held by the Node in Leyo's AST.
 typedef union {
     int literal;
 
@@ -37,11 +39,13 @@ typedef union {
     } assignment;
 } ASTData;
 
+/// @brief An AST Node for Leyo.
 struct ASTNode {
     ASTNodeType type;
     ASTData data;
 };
 
+/// @brief A list of AST Nodes. This can be used for storing the program.
 typedef struct {
     ASTNode **nodes;
     size_t count;
