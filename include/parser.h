@@ -52,4 +52,6 @@ typedef struct {
     size_t capacity;
 } ASTNodeList;
 
+ASTNodeList parse(TokenStream ts);
+
 #endif
