@@ -13,7 +13,6 @@
 #include <ctype.h>
 #include "../include/lyst.h"
 #include "../include/errors.h"
-#include "../include/codes.h"
 
 /// @brief Trims the given text.
 /// @param text The input to trim.

@@ -7,7 +7,6 @@
 /// @brief The headerer.
 
 #include "../include/errors.h"
-#include "../include/codes.h"
 #include "../include/parser.h"
 #include "../include/bytecode.h"
 #include "../include/version.h"

@@ -7,7 +7,6 @@
 /// @brief The VM.
 
 #include "../include/errors.h"
-#include "../include/codes.h"
 #include "../include/parser.h"
 #include "../include/bytecode.h"
 #include "../include/native.h"

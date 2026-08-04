@@ -8,7 +8,6 @@
 
 #include "../include/type.h"
 #include "../include/errors.h"
-#include "../include/codes.h"
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>

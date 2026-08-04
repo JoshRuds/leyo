@@ -12,7 +12,6 @@
 #include "../include/parser.h"
 #include "../include/headerer.h"
 #include "../include/errors.h"
-#include "../include/codes.h"
 
 /// @brief Gets the string representation of a token type.
 /// @param t The token type.

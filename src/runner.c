@@ -14,7 +14,6 @@
 #include "../include/vm.h"
 #include "../include/headerer.h"
 #include "../include/errors.h"
-#include "../include/codes.h"
 #include "../include/version.h"
 
 int run(char *filename, bool verbose) {
