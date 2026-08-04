@@ -11,11 +11,16 @@
 #include "../include/parser.h"
 #include "../include/errors.h"
 
+#define plraise(ec) \
+    lraise(WF_BUILD, ec, current().line, current().collumn, p->filename) 
+
 /// @brief The internal only parser object.
 typedef struct {
     Token *tokens;
     size_t tp; // token pointer
     size_t tokCount;
+
+    char filename[512];
 } Parser;
 
 Parser parser = {0}; 
@@ -28,6 +33,9 @@ ASTNodeList *program; // set to ProgramSTD
 /// @brief Get the current token.
 /// @return The token at the current parser position.
 static Token current(void) {
+    if (p->tp > p->tokCount) {
+        lraise();
+    }
     return p->tokens[p->tp];
 }
 
@@ -43,7 +51,7 @@ static void push(ASTNode *node) {
         );
 
         if (newNodes == NULL) {
-            lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, )
+            plraise(ERR_PARSER_CANNOT_ALLOCATE);
         }
 
         program->nodes = newNodes;
