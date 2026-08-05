@@ -7,7 +7,7 @@ CC = gcc
 GIT_COMMIT := $(shell git describe --always --tags)
 GIT_DIRTY := $(strip $(shell git diff-index --quiet HEAD -- && echo No || echo Yes))
 
-CFLAGS ?= -Wall -Wextra -pedantic -std=c99
+CFLAGS ?= -Wall -Wextra -pedantic -std=c99 -Iinclude
 CFLAGS += \
 	-DGIT_COMMIT=\"$(GIT_COMMIT)\" \
 	-DGIT_DIRTY=\"$(GIT_DIRTY)\"
