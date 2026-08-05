@@ -34,7 +34,7 @@ ASTNodeList *program; // set to ProgramSTD
 /// @return The token at the current parser position.
 static Token current(void) {
     if (p->tp > p->tokCount) {
-        lraise();
+        lraise(WF_BUILD, ERR_PARSER);
     }
     return p->tokens[p->tp];
 }
