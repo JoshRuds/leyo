@@ -3,11 +3,11 @@ blank_issues_enabled: false
 contact_links:
 
 - name: Questions and Support
-  url: https://github.com/<your-username>/leyo/discussions
+  url: https://github.com/leyo-lang/leyo/discussions
   about: Ask questions about using Leyo, the VM, syntax, or development.
 
 - name: Documentation
-  url: https://github.com/<your-username>/leyo/blob/main/README.md
+  url: https://github.com/leyo-lang/leyo/blob/main/README.md
   about: Read the documentation before opening an issue.
 
 - name: Security Issues
