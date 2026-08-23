@@ -9,7 +9,7 @@
 #ifndef HEADERER_H
 #define HEADERER_H
 
-#include "../include/parser.h"
+#include "parser.h"
 
 /// @brief The header found at the top of LYBC files.
 typedef struct {

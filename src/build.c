@@ -8,10 +8,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "../include/lexer.h"
-#include "../include/parser.h"
-#include "../include/headerer.h"
-#include "../include/errors.h"
+#include "lexer.h"
+#include "parser.h"
+#include "headerer.h"
+#include "errors.h"
 
 /// @brief Gets the string representation of a token type.
 /// @param t The token type.

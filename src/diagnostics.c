@@ -7,7 +7,7 @@
 /// @brief The diagnoser.
 
 #include <stdio.h>
-#include "../include/parser.h"
+#include "parser.h"
 
 /// @brief A helper to fetch the current platform.
 /// @return The platform name as a string.

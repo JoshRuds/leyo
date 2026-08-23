@@ -10,11 +10,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "../include/parser.h"
-#include "../include/vm.h"
-#include "../include/headerer.h"
-#include "../include/errors.h"
-#include "../include/version.h"
+#include "parser.h"
+#include "vm.h"
+#include "headerer.h"
+#include "errors.h"
+#include "version.h"
 
 int run(char *filename, bool verbose) {
     {

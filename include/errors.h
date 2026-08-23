@@ -10,7 +10,7 @@
 #define ERROR_H
 
 #include <stdbool.h>
-#include "../include/codes.h"
+#include "codes.h"
 
 enum { LOG_PATH_MAX = 512 };
 

@@ -61,8 +61,8 @@ docs/html/
 *.lybc
 .vs
 .vscode
-build/
-bin/
+/build/
+/bin/
 *.lylog
 logs/latest.lylog
 $null
@@ -72,3 +72,4 @@ $null
 .vscode/
 .DS_Store
 /.lyst
+.agents/

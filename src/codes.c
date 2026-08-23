@@ -7,7 +7,7 @@
 /// @brief Error code definitions.
 
 #include <stdbool.h>
-#include "../include/codes.h"
+#include "codes.h"
 
 const Error errorTable[] = {
     // File

@@ -11,8 +11,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
-#include "../include/lyst.h"
-#include "../include/errors.h"
+#include "lyst.h"
+#include "errors.h"
 
 /// @brief Trims the given text.
 /// @param text The input to trim.

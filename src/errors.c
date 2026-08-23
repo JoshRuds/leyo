@@ -21,8 +21,8 @@
 #include <unistd.h>
 #endif
 
-#include "../include/errors.h"
-#include "../include/codes.h"
+#include "errors.h"
+#include "codes.h"
 
 #define STRICT_MODE 0
 

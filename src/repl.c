@@ -6,10 +6,10 @@
 /// @file repl.c
 /// @brief The REPL.
 
-#include "../include/lexer.h"
-#include "../include/parser.h"
-#include "../include/errors.h"
-#include "../include/vm.h"
+#include "lexer.h"
+#include "parser.h"
+#include "errors.h"
+#include "vm.h"
 #include <stdio.h>
 #include <string.h>
 

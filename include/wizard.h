@@ -9,7 +9,7 @@
 #ifndef WIZARD_H
 #define WIZARD_H
 
-#include "../include/errors.h"
+#include "errors.h"
 
 /// @brief Reads from the .lyst file and returns its contents as an object.
 /// @return A LogConfig object for the .lyst file.

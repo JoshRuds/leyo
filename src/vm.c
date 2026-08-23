@@ -6,11 +6,11 @@
 /// @file vm.c
 /// @brief The VM.
 
-#include "../include/errors.h"
-#include "../include/parser.h"
-#include "../include/bytecode.h"
-#include "../include/native.h"
-#include "../include/disassembler.h"
+#include "errors.h"
+#include "parser.h"
+#include "bytecode.h"
+#include "native.h"
+#include "disassembler.h"
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>

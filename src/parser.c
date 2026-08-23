@@ -7,9 +7,9 @@
 /// @brief The parser.
 
 #include <stdlib.h>
-#include "../include/type.h"
-#include "../include/parser.h"
-#include "../include/errors.h"
+#include "type.h"
+#include "parser.h"
+#include "errors.h"
 
 #define plraise(ec) \
     lraise(WF_BUILD, ec, current().line, current().collumn, p->filename) 
@@ -34,7 +34,7 @@ ASTNodeList *program; // set to ProgramSTD
 /// @return The token at the current parser position.
 static Token current(void) {
     if (p->tp > p->tokCount) {
-        lraise(WF_BUILD, ERR_PARSER);
+        lraise(WF_BUILD, ERR_PARSER_CANNOT_ALLOCATE, );
     }
     return p->tokens[p->tp];
 }

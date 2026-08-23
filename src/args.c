@@ -6,8 +6,8 @@
 /// @file args.c
 /// @brief The custom arg-parser.
 
-#include "../include/args.h"
-#include "../include/errors.h"
+#include "args.h"
+#include "errors.h"
 
 #include <stdio.h>
 #include <string.h>

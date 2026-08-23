@@ -9,7 +9,7 @@
 #ifndef VM_H
 #define VM_H
 
-#include "../include/parser.h"
+#include "parser.h"
 
 /// @brief Run the VM on the given params.
 /// @param bc The loaded bytecoderesult object.

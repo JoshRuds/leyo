@@ -6,8 +6,8 @@
 /// @file lexer.c
 /// @brief The lexer.
 
-#include "../include/type.h"
-#include "../include/errors.h"
+#include "type.h"
+#include "errors.h"
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>

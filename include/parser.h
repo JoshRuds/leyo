@@ -9,7 +9,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "../include/type.h"
+#include "type.h"
 
 /// @brief The types of Nodes in Leyo's AST.
 typedef enum {

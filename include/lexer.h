@@ -11,7 +11,7 @@
 
 #include <stdbool.h>
 
-#include "../include/type.h"
+#include "type.h"
 
 /// @brief Helper - checks if char is present in a string.
 /// @param c The char to search for.

@@ -6,11 +6,11 @@
 /// @file headerer.c
 /// @brief The headerer.
 
-#include "../include/errors.h"
-#include "../include/parser.h"
-#include "../include/bytecode.h"
-#include "../include/version.h"
-#include "../include/headerer.h"
+#include "errors.h"
+#include "parser.h"
+#include "bytecode.h"
+#include "version.h"
+#include "headerer.h"
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>
